@@ -1,0 +1,37 @@
+---
+documentclass: jss
+classoption: nojss
+citation_package: natbib
+bibliography: references.bib
+author:
+  - name: Devin Incerti
+    affiliation: Genentech
+    # use this syntax to add text on several lines
+    address: |
+      | South San Francisco
+    email: \email{incerti.devin@gene.com}
+  - name: Jeroen Jansen
+    affiliation: |
+      | University of California, San Francisco
+    address: |
+      | San Francisco
+    email: \email{jeroen.jansen@ucsf.edu}
+title:
+  plain:     "hesim: Health Economic Simulation Modeling and Decision Analysis"
+  formatted: "\\pkg{hesim}: Health Economic Simulation Modeling and Decision Analysis"
+abstract: >
+  The abstract of the article.
+keywords:
+  formatted: [health economic evaluation, cost-effectiveness analysis, simulation, modeling, "\\proglang{R}"]
+  plain: [health economic evaluation, cost-effectiveness analysis, simulation, modeling, R]
+preamble: >
+  \usepackage{amsmath}
+output: rticles::jss_article
+---
+
+```{r, setup, include=FALSE}
+options(prompt = 'R> ', continue = '+ ')
+knitr::opts_chunk$set(eval = TRUE)
+```
+
+# Introduction
