@@ -36,7 +36,7 @@ options(prompt = "R> ", continue = "+  ", width = 70, useFancyQuotes = FALSE)
 
 %% - \Abstract{} almost as usual
 \Abstract{
-  To do.
+Health economic models simulate the costs and effects of health technologies for use in health technology assessment (HTA) to inform efficient use of scarce resources. Models have historically been developed using spreadsheet software (e.g., Microsoft \proglang{Excel}) and while use of \proglang{R} is growing, general purpose modeling software is still limited. \pkg{hesim} helps fill this gap by facilitating parameterization, simulation, and analysis of economic models in an integrated manner. Supported model types include cohort discrete time state transition models (cDTSTMs), individual continuous time state transition models (iCTSTMs), and partitioned survival models (PSMs), encompassing Markov (time-homogeneous and time-inhomogeneous) and semi-Markov processes. A modular design based on \pkg{R6} and \proglang{S3} classes allows users to combine separate submodels for disease progression, costs, and quality-adjusted life years (QALYs) in a flexible way. Probabilistic sensitivity analysis (PSA) is used to propagate uncertainty in model parameters to model outputs. Simulation code is written in \proglang{C++} so complex simulations such as those combining PSA and individual simulation can be run much more quickly than previously possible. Decision analysis within a cost-effectiveness framework is performed using simulated costs and QALYs from a PSA.
 }
 
 %% - \Keywords{} with LaTeX markup, at least one required
@@ -92,10 +92,11 @@ Despite their computational demands and foundations in statistics, health econom
 \pkg{hesim} is an \proglang{R} package that advances the functionality and performance of the existing software. Multiple model types are supported including cohort discrete time state transition models (DTSTMs), N-state PSMs, and individual-level continuous time state transition models (CTSTMs), encompassing both Markov (time-homogeneous and time-inhomogeneous) and semi-Markov processes. To maximize flexibility and faciliate integration of the statistical methods and economic model, parameters can be estimated either by fitting a model in \proglang{R} or by inputting parameters obtained from external sources. So that individual-level simulation and PSA can be run quickly, \pkg{Rcpp} and \pkg{data.table} are heavily utilized. After simulating costs and quality-adjusted life-years (QALYs) from a PSA, decision analysis can be performed within a cost-effectiveness framework.
 
 \section{Framework} \label{sec:framework}
+As shown in Figure~\ref{fig:econ-eval-process-hesim}, a typical analysis proceeds in a 3 steps:
 
 \begin{figure}[h]
 \centering
-\includegraphics[width = 15cm,  keepaspectratio]{econ-eval-process-hesim.png}
+\includegraphics[width = 15cm]{econ-eval-process-hesim.png}
 \caption{Economic modeling process}\label{fig:econ-eval-process-hesim}
 \end{figure}
 
