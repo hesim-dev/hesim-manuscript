@@ -20,9 +20,9 @@
 %% original source files, as listed above, are part of the
 %% same distribution. (The sources need not necessarily be
 %% in the same archive or directory.)
-\def\fileversion{3.0}
+\def\fileversion{3.1}
 \def\filename{jss}
-\def\filedate{2015/09/01}
+\def\filedate{2020/08/03}
 %%
 %% Package `jss' to use with LaTeX2e for JSS publications (http://www.jstatsoft.org/)
 %% License: GPL-2 | GPL-3
@@ -74,6 +74,7 @@
 \RequirePackage{graphicx,color,ae,fancyvrb}
 \RequirePackage[T1]{fontenc}
 \IfFileExists{upquote.sty}{\RequirePackage{upquote}}{}
+\IfFileExists{lmodern.sty}{\RequirePackage{lmodern}}{}
 %% bibliography
 \if@shortnames
   \usepackage[authoryear,round]{natbib}
@@ -493,7 +494,7 @@
 \def\@codex#1{{\normalfont\ttfamily\hyphenchar\font=-1 #1}\egroup}
 %%\let\code=\texttt
 \let\proglang=\textsf
-\newcommand{\pkg}[1]{{\fontseries{b}\selectfont #1}}
+\newcommand{\pkg}[1]{{\fontseries{m}\fontseries{b}\selectfont #1}}
 \newcommand{\email}[1]{\href{mailto:#1}{\normalfont\texttt{#1}}}
 \ifx\csname urlstyle\endcsname\relax
   \newcommand\@doi[1]{doi:\discretionary{}{}{}#1}\else

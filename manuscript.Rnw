@@ -1,0 +1,120 @@
+\documentclass[article, nojss]{jss}
+
+%% -- LaTeX packages and custom commands ---------------------------------------
+
+%% recommended packages
+\usepackage{thumbpdf,lmodern}
+
+%% new custom commands
+\newcommand{\class}[1]{`\code{#1}'}
+\newcommand{\fct}[1]{\code{#1()}}
+
+%% For Sweave-based articles about R packages:
+%% need no \usepackage{Sweave}
+\SweaveOpts{engine=R, eps=FALSE, keep.source = TRUE}
+<<preliminaries, echo=FALSE, results=hide>>=
+options(prompt = "R> ", continue = "+  ", width = 70, useFancyQuotes = FALSE)
+@
+
+
+%% -- Article metainformation (author, title, ...) -----------------------------
+
+%% - \author{} with primary affiliation
+%% - \Plainauthor{} without affiliations
+%% - Separate authors by \And or \AND (in \author) or by comma (in \Plainauthor).
+%% - \AND starts a new line, \And does not.
+\author{Devin Incerti\\Genentech
+   \And Jeroen Jansen\\University of California, San Francisco}
+\Plainauthor{Devin Incerti, Jeroen Jansen}
+
+%% - \title{} in title case
+%% - \Plaintitle{} without LaTeX markup (if any)
+%% - \Shorttitle{} with LaTeX markup (if any), used as running title
+\title{\pkg{hesim}: Health Economic Simulation Modeling and Decision Analysis}
+\Plaintitle{hesim: Health Economic Simulation Modeling and Decision Analysis}
+%\Shorttitle{A Short Demo Article in \proglang{R}}
+
+%% - \Abstract{} almost as usual
+\Abstract{
+  To do.
+}
+
+%% - \Keywords{} with LaTeX markup, at least one required
+%% - \Plainkeywords{} without LaTeX markup (if necessary)
+%% - Should be comma-separated and in sentence case.
+\Keywords{health economic evaluation, cost-effectiveness analysis, simulation, modeling, \proglang{R}}
+\Plainkeywords{health economic evaluation, cost-effectiveness analysis, simulation, modeling, R}
+
+%% - \Address{} of at least one author
+%% - May contain multiple affiliations for each author
+%%   (in extra lines, separated by \emph{and}\\).
+%% - May contain multiple authors for the same affiliation
+%%   (in the same first line, separated by comma).
+\Address{
+  Devin Incerti\\
+  Genentech\\
+  South San Francisco\\
+  E-mail: \email{incerti.devin@gene.com}\\
+  
+  Jeroen Jansen\\
+  University of California, San Francisco\\
+  San Francisco\\
+  E-mail: \email{jeroen.jansen@ucsf.edu}\\
+}
+
+\begin{document}
+
+
+%% -- Introduction -------------------------------------------------------------
+
+%% - In principle "as usual".
+%% - But should typically have some discussion of both _software_ and _methods_.
+%% - Use \proglang{}, \pkg{}, and \code{} markup throughout the manuscript.
+%% - If such markup is in (sub)section titles, a plain text version has to be
+%%   added as well.
+%% - All software mentioned should be properly \cite-d.
+%% - All abbreviations should be introduced.
+%% - Unless the expansions of abbreviations are proper names (like "Journal
+%%   of Statistical Software" above) they should be in sentence case (like
+%%   "generalized linear models" below).
+
+\section{Introduction} \label{sec:intro}
+Health technology assessment (HTA) is a systematic approach for comparing competing health technologies to inform the efficient use of health care resources. Publicly funded health systems such as those in Australia, Canada, and the United Kingdom, among others, use HTA to help maximize health gains for the population given a fixed budget. HTA is also commonly used by private payers to guide coverage decisions and the adoption of new technologies \citep{trosman2011health}. Such assessments usually rely heavily on cost-effectiveness analysis (CEA) so that decisions can be made on the basis of a formal evaluation of costs and effects \citep{dakin2015influence}. CEA is made feasible by development of health economic models that simulate costs and effects over relevant time horizons using the totality of available evidence. 
+
+The most commonly used economic models are Markov state transition models (STMs) that simulate transitions between mutually exclusive health states. When the Markov assumption holds so that transition probabilities are either constant over time or depend only on model time, a cohort-level model can be used \citep{briggs1998introduction}. If the Markov assumption is relaxed---e.g., with a semi-Markov model so that transition probabilities depend on time in an intermediate health state---then individual-level models are required in most cases \citep{brennan2006taxonomy, fiocco2008reduced}. Individual-level models afford considerably more flexibility and allow patient history to be tracked over time.
+
+Decisions informed by economic models and CEA are subject to uncertainty. One source of decision uncertainty stems from uncertainty in the underlying model parameters. Parameter uncertainty is typically quantified using probabilistic sensitivity analysis (PSA), which involves randomly sampling the model parameters from suitable probability distribution and simulating the model for each sampled parameter set \citep{claxton2005probabilistic}. When combined with individual-level simulation, PSA can take an appreciable amount of time to run \citep{ohagan2007monte}.
+
+Estimation of model parameters should ideally be performed using statistical models that are aligned with the structure of the economic model. For instance, when patient-level data is available, a multi-state model can be used to parameterize all possible transitions in a STM while accounting for censoring and competing risks \citep{williams2017cost}. Similarly, in oncology, partitioned survival models (PSMs) can be parameterized from estimates of progression-free survival (PFS) and overall survival (OS). In other cases, parameters might be combined from disparate sources, such as within a single Bayesian model \citep{baio2012bayesian}. When the clinical evidence base is not limited to a single study, a formal evidence synthesis, such as a network-meta analysis (NMA), might even be performed \citep{dias2018network}.
+
+Despite their computational demands and foundations in statistics, health economic models have historically been developed with specialized commercial software (e.g., \proglang{TreeAge}) or more commonly with a spreadsheet (almost always Microsoft \proglang{Excel}). The limitations of such software relative to programming languages like \proglang{R} have been increasingly emphasized in the literature \citep{baio2017simple, incerti2019r, jalal2017overview}. It is therefore no surprise that a number of related \proglang{R} packages have recently been developed, such as \pkg{BCEA} \citep{baio2017bayesian}, \pkg{SAVI} \citep{strong2014estimating}, \pkg{survHE} \citep{baio2020survhe}, and \pkg{heemod} \citep{filipovic2017markov}. Still, of the available packages, only \pkg{heemod} provides a general purpose framework for developing simulation models and it is limited to cohort Markov models. 
+
+\pkg{hesim} is an \proglang{R} package that advances the functionality and performance of the existing software. Multiple model types are supported including cohort discrete time state transition models (DTSTMs), N-state PSMs, and individual-level continuous time state transition models (CTSTMs), encompassing both Markov (time-homogeneous and time-inhomogeneous) and semi-Markov processes. To maximize flexibility and faciliate integration of the statistical methods and economic model, parameters can be estimated either by fitting a model in \proglang{R} or by inputting parameters obtained from external sources. So that individual-level simulation and PSA can be run quickly, \pkg{Rcpp} and \pkg{data.table} are heavily utilized. After simulating costs and quality-adjusted life-years (QALYs) from a PSA, decision analysis can be performed within a cost-effectiveness framework.
+
+\section{Framework} \label{sec:framework}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width = 15cm,  keepaspectratio]{econ-eval-process-hesim.png}
+\caption{Economic modeling process}\label{fig:econ-eval-process-hesim}
+\end{figure}
+
+
+%% -- Bibliography -------------------------------------------------------------
+%% - References need to be provided in a .bib BibTeX database.
+%% - All references should be made with \cite, \citet, \citep, \citealp etc.
+%%   (and never hard-coded). See the FAQ for details.
+%% - JSS-specific markup (\proglang, \pkg, \code) should be used in the .bib.
+%% - Titles in the .bib should be in title case.
+%% - DOIs should be included where available.
+\bibliography{references}
+
+
+%% -- Appendix (if any) --------------------------------------------------------
+%% - After the bibliography with page break.
+%% - With proper section titles and _not_ just "Appendix".
+
+%% -----------------------------------------------------------------------------
+
+
+\end{document}
