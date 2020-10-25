@@ -5,6 +5,9 @@
 %% recommended packages
 \usepackage{thumbpdf,lmodern}
 
+%% other packages
+\usepackage{algorithm}
+
 %% new custom commands
 \newcommand{\class}[1]{`\code{#1}'}
 \newcommand{\fct}[1]{\code{#1()}}
@@ -99,11 +102,11 @@ Markov and semi-Markov models can be formulated in either continuous or discrete
 
 PSMs are specialized models that can be parameterized using survival curves and are especially useful in oncology where PFS and OS are commonly reported. They are ``area under the curve'' models, although they can also be formulate as STMs by using the survival curves to construct transition probabilities. 
 
-\subsection{Cohort Discrete time state transition models} \label{sec:cDTSTMs}
-cDTSTMs simulate the probability that a cohort of patients is in each of $H$ health states over time. Time is measured at discrete times with each time point known as a model cycle. A $1 \times H$ state vector that stores the probability of being in each health state at time $t$ is written as $v_t = [v_{1t}, v_{2t}, \ldots, v_{Ht}]$ where $\sum_i v_{ht} = 1$. A transition probability matrix is denoted by $p_t$ where the $(r,s)$th element represents a transition from state $r$ to state $s$ between times $t$ and $t+1$. The state vector at time $t+1$ for each of $T$ model cycles can be computed as,
+\subsection{Cohort discrete time state transition models} \label{sec:cDTSTMs}
+cDTSTMs simulate the probability that a cohort of patients is in each of $H$ health states over time. Time is measured at discrete times with each time point known as a model cycle. A $1 \times H$ state vector that stores the probability of being in each health state at time $t$ is written as $v_t = (v_{1t}, v_{2t}, \ldots, v_{Ht})$ where $\sum_i v_{ht} = 1$. A transition probability matrix is denoted by $P_t$ where the $(r,s)$th element represents a transition from state $r$ to state $s$ between times $t$ and $t+1$. The state vector at time $t+1$ for each of $T$ model cycles can be computed as,
 
 \begin{equation} \label{eqn:markov-sim}
-v_{t+1}= v_t p_t, \quad t = 0,\ldots, T.
+v_{t+1}= v_t P_t, \quad t = 0,\ldots, T.
 \end{equation}
 
 Costs and QALYs are computed by assigning (potentially time-varying) values to each health state. Utility, a measure of preference for a health state that normally ranges from $0$ (dead) to $1$ (perfect health), is used when computing QALYs \citep{torrance1986measurement}. Assuming model time is in years, state values for costs are estimated by annualizing costs. In a Markov model, state values, like transition probabilities, can depend on time since the start of the model but not on time since entering an intermediate health state.
@@ -124,9 +127,30 @@ In a discrete time, the integral is approximated with
 
 where $\Delta t_j = t_j - t_{j-1}$, $t_j^{*}\in[t_{j-1},t_j]$, and $f(t_j^{*})= z_h(t_j^{*}) e^{-rt_j^{*}} P_h(t_j^{*})$. Three methods can be used to estimate $f(t_j^{*})$. First, a left Riemann sum uses values at the start of each time interval $f(t_j^{*}) = f(t_{j-1})$. Second, a right Riemann sum uses values at the end of each time interval $f(t_j^{*}) = f(t_j)$. Finally, the trapezoid rule averages values at the start and end of each interval $f(t_j^{*}) = \frac{1}{2}\Delta t_j[f(t_{j-1}) + f(t_j)]$. 
 
+\subsection{Individual continuous time state transition models} \label{sec:iCTSTMs}
+iCTSTMs simulate individual trajectories between health states in continuous time using random number generation. Trajectories are simulated for multiple patients and costs and QALYs are computed by averaging across the simulated patients. A reasonably large number of patients must be simulated to ensure that expected values are stable \citep{ohagan2007monte}. 
 
+Simulation is performed using a parametric and flexible parametric multi-state modeling framework based on the \pkg{flexsurv} package \citep{jackson2016flexsurv}. Let $t_j$ denote the time a patient enters state $r$ and $t_{j+1}$ denote the time a patient starting in state $r$ transitions to state $s$. Time-to-event $t^*$ for the $r \rightarrow s$ has probability density function, 
 
-\subsection{Individual Continuous time state transition models} \label{sec:cDTSTMs}
+\begin{equation}
+f_{rs}(t^*|\theta(z), t_j), \quad t^*\geq 0,
+\end{equation}
+
+where parameters $\theta = (\theta_1, \theta_2, \ldots, \theta_p)$ may depend on covariates $z_p$ through the link function $g(\theta_p) = z_p^T \gamma$ where $\gamma$ are a vector of regression coefficients. In a time inhomogeneous Markov model, time $t^*=t_{j+1}$ is conditional on not experiencing event $s$ until time $t_j$ (i.e., it is left-truncated at time $t_j$). In a semi-Markov model, time-to-event is expressed in terms of $t^* = t_{j+1}-t_j$ and a patient enters state $s$ at time $t_j + t^*$.
+
+A survival distribution is specified for each permitted transition in the multi-state model. A trajectory through the model can then be simulated as described in Algorithm~\ref{alg:sim-ictstm}. While the algorithm repeats until a patient dies, it can also be stopped at a specified time $t$ or when a patient reaches a maximum age. In the latter scenario, death is assume to occur at the maximum age.
+ 
+
+\begin{algorithm}
+\caption{Simulation of individual continuous time state transition model}
+\label{alg:sim-ictstm}
+\begin{enumerate}
+\item Let $r$ be the starting state and starting time be $t_j = 0$. The number of permitted transitions from state $r$ is given by $n_r$.
+\item Simulate times $\mathcal{T} = \{t_{1, j+1}, t_{2, j+1}, \ldots t_{n_r, j+1}\}$ to each of the $n_r$ permitted transitions.
+\item Set the time of the transition $t_{j+1}$ equal to the minimum simulated time in $\mathcal{T}$ and the next state $s$ to the state with the minimum simulated time.
+\item Set $r=s$ and $t_j = t_{j+1}$. If the patient is still alive, repeat the previous steps until death.
+\end{enumerate}
+\end{algorithm}
 
 \subsection{Partitioned survival models} \label{sec:PSMs}
 
