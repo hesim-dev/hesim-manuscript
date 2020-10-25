@@ -91,6 +91,46 @@ Despite their computational demands and foundations in statistics, health econom
 
 \pkg{hesim} is an \proglang{R} package that advances the functionality and performance of the existing software. Multiple model types are supported including cohort discrete time state transition models (DTSTMs), N-state PSMs, and individual-level continuous time state transition models (CTSTMs), encompassing both Markov (time-homogeneous and time-inhomogeneous) and semi-Markov processes. To maximize flexibility and faciliate integration of the statistical methods and economic model, parameters can be estimated either by fitting a model in \proglang{R} or by inputting parameters obtained from external sources. So that individual-level simulation and PSA can be run quickly, \pkg{Rcpp} and \pkg{data.table} are heavily utilized. After simulating costs and quality-adjusted life-years (QALYs) from a PSA, decision analysis can be performed within a cost-effectiveness framework.
 
+%% -- Model taxonomy -----------------------------------------------------------
+\section{Model taxonomy} \label{sec:model-taxonomy}
+STMs simulate transitions between mutually exclusive health states. A common assumption is that the STM is a Markov model, meaning that transitions to the next health state can only depend on the present health state. In a time homogeneous Markov model transition probabilities are constant over time, whereas in a time inhomogeneous model they can depend on time since the start of the model. A semi-Markov model relaxes the Markov assumption and allows transitions to depend on time since entering an intermediate state.
+
+Markov and semi-Markov models can be formulated in either continuous or discrete time, at either the cohort or individual level. In health economics, Markov cohort models tend to be formulated in discrete time (i.e., as cDTSTMs), although state probabilities can be computed in continuous time models using the Aalen-Johansen estimator \citep{aalen1978empirical}. While tunnel states can be used to approximate a semi-Markov model using a cohort approach, they can only be simulated in a general fashion using individual level models. Discrete time individual simulation is possible, but we use a continuous time models (i.e., iCTSTMs) because they do not require specification of model cycles and can be run considerably faster. 
+
+PSMs are specialized models that can be parameterized using survival curves and are especially useful in oncology where PFS and OS are commonly reported. They are ``area under the curve'' models, although they can also be formulate as STMs by using the survival curves to construct transition probabilities. 
+
+\subsection{Cohort Discrete time state transition models} \label{sec:cDTSTMs}
+cDTSTMs simulate the probability that a cohort of patients is in each of $H$ health states over time. Time is measured at discrete times with each time point known as a model cycle. A $1 \times H$ state vector that stores the probability of being in each health state at time $t$ is written as $v_t = [v_{1t}, v_{2t}, \ldots, v_{Ht}]$ where $\sum_i v_{ht} = 1$. A transition probability matrix is denoted by $p_t$ where the $(r,s)$th element represents a transition from state $r$ to state $s$ between times $t$ and $t+1$. The state vector at time $t+1$ for each of $T$ model cycles can be computed as,
+
+\begin{equation} \label{eqn:markov-sim}
+v_{t+1}= v_t p_t, \quad t = 0,\ldots, T.
+\end{equation}
+
+Costs and QALYs are computed by assigning (potentially time-varying) values to each health state. Utility, a measure of preference for a health state that normally ranges from $0$ (dead) to $1$ (perfect health), is used when computing QALYs \citep{torrance1986measurement}. Assuming model time is in years, state values for costs are estimated by annualizing costs. In a Markov model, state values, like transition probabilities, can depend on time since the start of the model but not on time since entering an intermediate health state.
+
+Expected values are computed by integrating the "weighted" probability of being in each state, where weights are a function of the discount factor and state values. That is, for a time horizon $T$, discounted costs and QALYs in health state h are computed as,
+
+\begin{equation} \label{eqn:cohort-costs-qalys}
+\int_0^{T} z_h(t) e^{-rt} P_h(t) dt,
+\end{equation}
+
+where $z_h(t)$ is the predicted cost or utility value at time $t$, $r$ is the discount rate, and $P_h(t)$ is the probability of being in a given health state. 
+
+In a discrete time, the integral is approximated with
+
+\begin{equation} \label{eqn:riemann-sum}
+\sum_{j = 1}^{T}f(t_j^{*})\Delta t_j
+\end{equation}
+
+where $\Delta t_j = t_j - t_{j-1}$, $t_j^{*}\in[t_{j-1},t_j]$, and $f(t_j^{*})= z_h(t_j^{*}) e^{-rt_j^{*}} P_h(t_j^{*})$. Three methods can be used to estimate $f(t_j^{*})$. First, a left Riemann sum uses values at the start of each time interval $f(t_j^{*}) = f(t_{j-1})$. Second, a right Riemann sum uses values at the end of each time interval $f(t_j^{*}) = f(t_j)$. Finally, the trapezoid rule averages values at the start and end of each interval $f(t_j^{*}) = \frac{1}{2}\Delta t_j[f(t_{j-1}) + f(t_j)]$. 
+
+
+
+\subsection{Individual Continuous time state transition models} \label{sec:cDTSTMs}
+
+\subsection{Partitioned survival models} \label{sec:PSMs}
+
+%% -- Framework ----------------------------------------------------------------
 \section{Framework} \label{sec:framework}
 As shown in Figure~\ref{fig:econ-eval-process-hesim}, a typical analysis proceeds in a 3 steps:
 
