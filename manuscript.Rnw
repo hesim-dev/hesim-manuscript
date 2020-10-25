@@ -140,7 +140,6 @@ where parameters $\theta = (\theta_1, \theta_2, \ldots, \theta_p)$ may depend on
 
 A survival distribution is specified for each permitted transition in the multi-state model. A trajectory through the model can then be simulated as described in Algorithm~\ref{alg:sim-ictstm}. While the algorithm repeats until a patient dies, it can also be stopped at a specified time $t$ or when a patient reaches a maximum age. In the latter scenario, death is assume to occur at the maximum age.
  
-
 \begin{algorithm}
 \caption{Simulation of individual continuous time state transition model}
 \label{alg:sim-ictstm}
@@ -151,6 +150,18 @@ A survival distribution is specified for each permitted transition in the multi-
 \item Set $r=s$ and $t_j = t_{j+1}$. If the patient is still alive, repeat the previous steps until death.
 \end{enumerate}
 \end{algorithm}
+
+Costs and QALYs are computed using the continuous time present value given a flow of state values, which change as patients transition between health states or as costs vary as a function of time. The state values can be partitioned into $M$ time intervals indexed by $m = 1,\ldots, M$ where interval $m$ contains times $t$ such that $t_m\leq t \leq t_{m+1}$ and values for state $h$ are equal to $z_{hm}$ during interval $m$. $z_{hm}$ will equal zero during time intervals in which a patient is not in state $h$. Discounted costs and QALYs for health state $h$ are then given by,  
+
+\begin{equation}
+\sum_{m = 1}^M \int_{t_m}^{t_m+1} z_{hm}e^{-rt}dt = \sum_{m = 1}^M z_{hm} \left(\frac{e^{-r{t_{m}}} - e^{-r{t_{m+1}}}}{r}\right),
+\end{equation}
+
+where $r > 0$ is again the discount rate. If $r = 0$, then the present value simplifies to $\sum_{m = 1}^M z_{hm}(t_{m+1} - t_{m})$. 
+
+Note that while state values in cohort models can depend on time since the start of the model, state values in individual-level models can depend on either time since the start of the model or time since entering the most recent health state. Individual-level models consequently not only afford more flexibility than cohort models when simulating disease progression, but when simulating costs and/or QALYs as well.
+
+
 
 \subsection{Partitioned survival models} \label{sec:PSMs}
 
