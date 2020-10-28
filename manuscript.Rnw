@@ -167,9 +167,12 @@ where $r > 0$ is again the discount rate. If $r = 0$, then the present value sim
 
 Note that while state values in cohort models can depend on time since the start of the model, state values in individual-level models can depend on either time since the start of the model or time since entering the most recent health state. Individual-level models consequently not only afford more flexibility than cohort models when simulating disease progression, but when simulating costs and/or QALYs as well.
 
-
-
 \subsection{Partitioned survival models} \label{sec:PSMs}
+PSMs are conceptually similar to state transition models in that they are characterized by mutually exclusive health states. They differ, however, in that state probabilities are not computed via matrix multiplication or individual simulation, but from a set of non-mutually exclusive survival curves \citep{glasziou1990quality, woods2018nice}. Each survival curve represents time to transitioning to that state or to a more severe health state.
+
+In $N$-state model, $N-1$ non-mutually exclusive survival curves are required. The cumulative survival function, $S_n(t)$, represents the probability that a patient survives to health state $n$ or to a lower indexed state beyond time $t$. The probability that a patient is in health state 1 is $S_1(t)$. State membership in health states $2,\ldots, N-1$ is computed as $S_{n}(t) - S_{n-1}(t)$. Finally, the probability of being in the final health state $n$ (i.e., the death state) is $1-S_{N-1}(t)$, or one minus overall survival function.
+
+Survival functions are estimated by fitting parametric or flexible parametric survival models as described in Section~\ref{sec:iCTSTMs}. The $n$th fitted survival model with density $f_n(t)$ has cumulative density function $F_n(t)$, survivor function $1 - F_n(T)$, cumulative hazard $H_n(t) = -\log S_n(t)$, and hazard $h_n(t) = f_n(t)/S_n(t)$. State probabilities for each health states can be computed for an arbitrarily fine grid of time points to produce the health state vector $x_t$ for each time $t$ in the grid. Costs and QALYs are then computed in the same manner as in the cohort model described in Section~\ref{sec:cDTSTMs}.
 
 %% -- Framework ----------------------------------------------------------------
 \section{Framework} \label{sec:framework}
