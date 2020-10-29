@@ -7,6 +7,9 @@
 
 %% other packages
 \usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{caption} 
+\captionsetup[table]{skip=5pt}
 
 %% new custom commands
 \newcommand{\class}[1]{`\code{#1}'}
@@ -39,14 +42,14 @@ options(prompt = "R> ", continue = "+  ", width = 70, useFancyQuotes = FALSE)
 
 %% - \Abstract{} almost as usual
 \Abstract{
-Health economic models simulate the costs and effects of health technologies for use in health technology assessment (HTA) to inform efficient use of scarce resources. Models have historically been developed using spreadsheet software (e.g., Microsoft \proglang{Excel}) and while use of \proglang{R} is growing, general purpose modeling software is still limited. \pkg{hesim} helps fill this gap by facilitating parameterization, simulation, and analysis of economic models in an integrated manner. Supported model types include cohort discrete time state transition models (cDTSTMs), individual continuous time state transition models (iCTSTMs), and partitioned survival models (PSMs), encompassing Markov (time-homogeneous and time-inhomogeneous) and semi-Markov processes. A modular design based on \pkg{R6} and \proglang{S3} classes allows users to combine separate submodels for disease progression, costs, and quality-adjusted life years (QALYs) in a flexible way. Probabilistic sensitivity analysis (PSA) is used to propagate uncertainty in model parameters to model outputs. Simulation code is written in \proglang{C++} so complex simulations such as those combining PSA and individual simulation can be run much more quickly than previously possible. Decision analysis within a cost-effectiveness framework is performed using simulated costs and QALYs from a PSA.
+Health economic models simulate the costs and effects of health technologies for use in health technology assessment (HTA) to inform efficient use of scarce resources. Models have historically been developed using spreadsheet software (e.g., Microsoft \proglang{Excel}) and while use of \proglang{R} is growing, general purpose modeling software is still limited. \pkg{hesim} helps fill this gap by facilitating parameterization, simulation, and analysis of economic models in an integrated manner. Supported model types include cohort discrete time state transition models (cDTSTMs), individual continuous time state transition models (iCTSTMs), and partitioned survival models (PSMs), encompassing Markov (time-homogeneous and time-inhomogeneous) and semi-Markov processes. A modular design based on \pkg{R6} and \code{S3} classes allows users to combine separate submodels for disease progression, costs, and quality-adjusted life years (QALYs) in a flexible way. Probabilistic sensitivity analysis (PSA) is used to propagate uncertainty in model parameters to model outputs. Simulation code is written in \proglang{C++} so complex simulations such as those combining PSA and individual simulation can be run much more quickly than previously possible. Decision analysis within a cost-effectiveness framework is performed using simulated costs and QALYs from a PSA.
 }
 
 %% - \Keywords{} with LaTeX markup, at least one required
 %% - \Plainkeywords{} without LaTeX markup (if necessary)
 %% - Should be comma-separated and in sentence case.
-\Keywords{health economic evaluation, cost-effectiveness analysis, simulation, modeling, \proglang{R}}
-\Plainkeywords{health economic evaluation, cost-effectiveness analysis, simulation, modeling, R}
+\Keywords{health economic evaluation, cost-effectiveness analysis, simulation, multi-state models, \proglang{R}}
+\Plainkeywords{health economic evaluation, cost-effectiveness analysis, simulation, multi-state models, R}
 
 %% - \Address{} of at least one author
 %% - May contain multiple affiliations for each author
@@ -168,7 +171,7 @@ where $r > 0$ is again the discount rate. If $r = 0$, then the present value sim
 Note that while state values in cohort models can depend on time since the start of the model, state values in individual-level models can depend on either time since the start of the model or time since entering the most recent health state. Individual-level models consequently not only afford more flexibility than cohort models when simulating disease progression, but when simulating costs and/or QALYs as well.
 
 \subsection{Partitioned survival models} \label{sec:PSMs}
-PSMs are conceptually similar to state transition models in that they are characterized by mutually exclusive health states. They differ, however, in that state probabilities are not computed via matrix multiplication or individual simulation, but from a set of non-mutually exclusive survival curves \citep{glasziou1990quality, woods2018nice}. Each survival curve represents time to transitioning to that state or to a more severe health state.
+PSMs are conceptually similar to STMs in that they are characterized by mutually exclusive health states. They differ, however, in that state probabilities are not computed via matrix multiplication or individual simulation, but from a set of non-mutually exclusive survival curves \citep{glasziou1990quality, woods2018nice}. Each survival curve represents time to transitioning to that state or to a more severe health state.
 
 In $N$-state model, $N-1$ non-mutually exclusive survival curves are required. The cumulative survival function, $S_n(t)$, represents the probability that a patient survives to health state $n$ or to a lower indexed state beyond time $t$. The probability that a patient is in health state 1 is $S_1(t)$. State membership in health states $2,\ldots, N-1$ is computed as $S_{n}(t) - S_{n-1}(t)$. Finally, the probability of being in the final health state $n$ (i.e., the death state) is $1-S_{N-1}(t)$, or one minus overall survival function.
 
@@ -176,7 +179,11 @@ Survival functions are estimated by fitting parametric or flexible parametric su
 
 %% -- Framework ----------------------------------------------------------------
 \section{Framework} \label{sec:framework}
-As shown in Figure~\ref{fig:econ-eval-process-hesim}, a typical analysis proceeds in a 3 steps:
+The \pkg{hesim} coding framework aims to follow three main tenets. First, it should be possible to seamlessly integrate parameter estimation with simulation. Second, modular code show allow for models to be built in a flexible manner. Finally, code should be computationally efficient.
+
+Each economic model consists of separate statistical models of disease progression, costs, and utilities. All analyses proceed in 4 steps. The first step is to setup the model by defining the model structure, target population, and treatment strategies of interest. This is implemented in \pkg{hesim} with the \code{hesim_data} class as will be illustrated in the examples below.
+
+The actual analysis is performed in the next three steps as shown in Figure~\ref{fig:econ-eval-process-hesim}. First, a statistical models for disease progression, costs, and utilities are parameterized using ``estimation'' datasets. Next, the statistical models are combined to construct an economic model. For a given model structure, disease progression, QALYs, and costs are simulated from ``input data'', based on the target population and treatment strategies of interest. Finally, the simulated outcomes are used to perform decision analysis, currently limited to CEA. 
 
 \begin{figure}[h]
 \centering
@@ -184,6 +191,26 @@ As shown in Figure~\ref{fig:econ-eval-process-hesim}, a typical analysis proceed
 \caption{Economic modeling process}\label{fig:econ-eval-process-hesim}
 \end{figure}
 
+The three economic models described in Section~\ref{sec:model-taxonomy} are implemented as the \pkg{R6} classes \code{CohortDtstm}, \code{IndivCtstm}, and \code{Psm}. Methods are provided within each class for simulating disease progression, costs, and QALYs. These methods are made possible by separate \pkg{R6} classes for disease progression, costs, and utility, which comprise the full economic model. Below, we describe this modular design in more detail. 
+
+\subsection{Parameterization} \label{sec:parameterization}
+\subsubsection{Disease progression}
+The statistical model used to parameterize the disease model component of an economic model varies by the type of economic model. For example, multinomial logistic regressions can be used to parameterize a cDTSTM, a set of N-1 independent survival models are used to parameterize an N-state partitioned survival model, and multi-state models can be used to parameterize an iCTSTM (Table~\ref{tbl:parameterize-disease-model}). 
+\begin{table} 
+\caption{Parameterization of disease models}\label{tbl:parameterize-disease-model}
+\footnotesize
+\begin{tabular}{l l l l}
+\hline
+Economic model & Statistical model & Parameter object & Model fit object\\
+\hline
+\multirow{2}{*}{\code{CohortDtstm}}& Custom & \code{tparams_transprobs} & \code{define_model()}\\
+ & Multinomial logistic regressions & \code{params_mlogit} & \code{multinom_list}\\
+\multirow{2}{*}{\code{IndivCtstm}} & Multi-state model (joint likelihood) & \code{params_surv} & \code{flexsurv::flexsurvreg}\\
+& Multi-state model (transition-specific) & \code{params_surv_list} & \code{flexsurvreg_list}\\
+\code{Psm} & Independent survival models & \code{param_surv_list} & \code{flexsurvreg_list}\\
+\hline
+\end{tabular}
+\end{table}
 
 %% -- Bibliography -------------------------------------------------------------
 %% - References need to be provided in a .bib BibTeX database.
