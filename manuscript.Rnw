@@ -179,11 +179,9 @@ Survival functions are estimated by fitting parametric or flexible parametric su
 
 %% -- Framework ----------------------------------------------------------------
 \section{Framework} \label{sec:framework}
-The \pkg{hesim} coding framework aims to follow three main tenets. First, it should be possible to seamlessly integrate parameter estimation with simulation. Second, modular code show allow for models to be built in a flexible manner. Finally, code should be computationally efficient.
+Economic models consists of separate submodels of disease progression, costs, and utilities. Model development proceed in 4 steps. The first step is to setup the model by defining the model structure, target population, and treatment strategies of interest. This is implemented with the \code{hesim_data} class as will be illustrated in the examples below.
 
-Each economic model consists of separate statistical models of disease progression, costs, and utilities. All analyses proceed in 4 steps. The first step is to setup the model by defining the model structure, target population, and treatment strategies of interest. This is implemented in \pkg{hesim} with the \code{hesim_data} class as will be illustrated in the examples below.
-
-The actual analysis is performed in the next three steps as shown in Figure~\ref{fig:econ-eval-process-hesim}. First, a statistical models for disease progression, costs, and utilities are parameterized using ``estimation'' datasets. Next, the statistical models are combined to construct an economic model. For a given model structure, disease progression, QALYs, and costs are simulated from ``input data'', based on the target population and treatment strategies of interest. Finally, the simulated outcomes are used to perform decision analysis, currently limited to CEA. 
+The analysis is performed in the next three steps as shown in Figure~\ref{fig:econ-eval-process-hesim}. First, models for disease progression, costs, and utilities are parameterized using ``estimation'' datasets. Next, the submodels are combined to construct an economic model. For a given model structure, disease progression, QALYs, and costs are simulated from ``input data'', based on the target population and treatment strategies of interest. Finally, the simulated outcomes are used to perform decision analysis, currently limited to CEA. 
 
 \begin{figure}[h]
 \centering
@@ -191,15 +189,19 @@ The actual analysis is performed in the next three steps as shown in Figure~\ref
 \caption{Economic modeling process}\label{fig:econ-eval-process-hesim}
 \end{figure}
 
-The three economic models described in Section~\ref{sec:model-taxonomy} are implemented as the \pkg{R6} classes \code{CohortDtstm}, \code{IndivCtstm}, and \code{Psm}. Methods are provided within each class for simulating disease progression, costs, and QALYs. These methods are made possible by separate \pkg{R6} classes for disease progression, costs, and utility, which comprise the full economic model. Below, we describe this modular design in more detail. 
+The three economic models described in Section~\ref{sec:model-taxonomy} are implemented as the \pkg{R6} classes \code{CohortDtstm}, \code{IndivCtstm}, and \code{Psm}. Methods are provided within each class for simulating disease progression, costs, and QALYs. These methods are made possible by separate \pkg{R6} classes for the disease, costs, and utility submodels. Below, we describe this modular design in more detail. 
 
 \subsection{Parameterization} \label{sec:parameterization}
+Each submodel contains fields for the model parameters and the input data. Parameters can either be created from a statistical model fit using \proglang{R} (e.g., a survival model) or input directly by the user. There are two types of parameter objects, standard parameter objects prefixed by \code{``params''} and transformed parameter objects prefixed by \code{``tparams''}. The former contain the underlying parameters of a statistical model while the latter contain parameters more immediate to prediction that have been transformed as function of the input data. The coefficients from a Weibull regression model are an example of a parameter object and the predicted shape and scale parameters of the Weibull distribution are an example of a transformed parameter object.
+
+Although economic models are ideally parameterized using explicit statistical models, it is not always feasible. Parameters are often taken from a variety of sources or from summary level data. In these cases, it can be convenient to build models using mathematical expressions. This can be done when building cDTSTMs using \code{defime_model()}.
+
 \subsubsection{Disease progression}
-The statistical model used to parameterize the disease model component of an economic model varies by the type of economic model. For example, multinomial logistic regressions can be used to parameterize a cDTSTM, a set of N-1 independent survival models are used to parameterize an N-state partitioned survival model, and multi-state models can be used to parameterize an iCTSTM (Table~\ref{tbl:parameterize-disease-model}). 
+The statistical model used to parameterize the disease model depends on the type of economic model. For example, multinomial logistic regressions can be used to parameterize a cDTSTM, a set of N-1 independent survival models are used to parameterize an N-state partitioned survival model, and multi-state models can be used to parameterize an iCTSTM (Table~\ref{tbl:parameterize-disease-model}). 
 \begin{table} 
 \caption{Parameterization of disease models}\label{tbl:parameterize-disease-model}
 \footnotesize
-\begin{tabular}{l l l l}
+\begin{tabular*}{\textwidth}{l l l l}
 \hline
 Economic model & Statistical model & Parameter object & Model fit object\\
 \hline
@@ -209,8 +211,11 @@ Economic model & Statistical model & Parameter object & Model fit object\\
 & Multi-state model (transition-specific) & \code{params_surv_list} & \code{flexsurvreg_list}\\
 \code{Psm} & Independent survival models & \code{param_surv_list} & \code{flexsurvreg_list}\\
 \hline
-\end{tabular}
+\end{tabular*}
 \end{table}
+
+The parameters of a survival model are stored in a \code{params_surv} object and a \code{params_surv_list} can be used to store the parameters of multiple survival models. The latter is useful for storing the parameters of a mutli-state model or the independent survival models required for a PSM. The parameters of a multinomial logistic regression are stored in a \code{params_mlogit} and can be created by fitting a model with \code{nnet::multinom()}.
+
 
 %% -- Bibliography -------------------------------------------------------------
 %% - References need to be provided in a .bib BibTeX database.
