@@ -101,7 +101,7 @@ Despite their computational demands and foundations in statistics, health econom
 \section{Model taxonomy} \label{sec:model-taxonomy}
 STMs simulate transitions between mutually exclusive health states. A common assumption is that the STM is a Markov model, meaning that transitions to the next health state can only depend on the present health state. In a time homogeneous Markov model transition probabilities are constant over time, whereas in a time inhomogeneous model they can depend on time since the start of the model. A semi-Markov model relaxes the Markov assumption and allows transitions to depend on time since entering an intermediate state.
 
-Markov and semi-Markov models can be formulated in either continuous or discrete time, at either the cohort or individual level. In health economics, Markov cohort models tend to be formulated in discrete time (i.e., as cDTSTMs), although state probabilities can be computed in continuous time models using the Aalen-Johansen estimator \citep{aalen1978empirical}. While tunnel states can be used to approximate a semi-Markov model using a cohort approach, they can only be simulated in a general fashion using individual level models. Discrete time individual simulation is possible, but we use a continuous time models (i.e., iCTSTMs) because they do not require specification of model cycles and can be run considerably faster. 
+Markov and semi-Markov models can be formulated in either continuous or discrete time, at either the cohort or individual level. In health economics, Markov cohort models tend to be formulated in discrete time (i.e., as cDTSTMs), although state probabilities can be computed in continuous time models using the Aalen-Johansen estimator \citep{aalen1978empirical} or the Kolmogorov forward equation \citep{cox1977theory}. While tunnel states can be used to approximate a semi-Markov model using a cohort approach, they can only be simulated in a general fashion using individual level models. Discrete time individual simulation is possible, but we use a continuous time models (i.e., iCTSTMs) because they do not require specification of model cycles and can be run considerably faster. 
 
 PSMs are specialized models that can be parameterized using survival curves and are especially useful in oncology where PFS and OS are commonly reported. They are ``area under the curve'' models, although they can also be formulate as STMs by using the survival curves to construct transition probabilities. 
 
@@ -179,9 +179,9 @@ Survival functions are estimated by fitting parametric or flexible parametric su
 
 %% -- Framework ----------------------------------------------------------------
 \section{Framework} \label{sec:framework}
-Economic models consists of separate submodels of disease progression, costs, and utilities. Model development proceed in 4 steps. The first step is to setup the model by defining the model structure, target population, and treatment strategies of interest. This is implemented with the \code{hesim_data} class as will be illustrated in the examples below.
+Economic models consist of a disease model, a utility model, and a set of cost models for each cost category. Model development proceed in 4 steps. The first step is to setup the model by defining the model structure, target population, and treatment strategies of interest, and storing the relevant information in a \code{hesim_data} object. 
 
-The analysis is performed in the next three steps as shown in Figure~\ref{fig:econ-eval-process-hesim}. First, models for disease progression, costs, and utilities are parameterized using ``estimation'' datasets. Next, the submodels are combined to construct an economic model. For a given model structure, disease progression, QALYs, and costs are simulated from ``input data'', based on the target population and treatment strategies of interest. Finally, the simulated outcomes are used to perform decision analysis, currently limited to CEA. 
+The analysis is performed in the next three steps as shown in Figure~\ref{fig:econ-eval-process-hesim}. First, the disease progression, costs, and utility submodels are parameterized using ``estimation'' datasets. Next, the submodels are combined to construct an economic model. The economic model is then used to simulate, disease progression, QALYs, and costs as a function of ``input data''. The input data always contains variables describing the target population and treatment strategies of interest, but can also contain variables related to time to facilitate use of time-varying covariates or parameters. Finally, the simulated outcomes are used to perform decision analysis, currently limited to CEA. All models are simulated using PSA so that decision uncertainty can be represented.  
 
 \begin{figure}[h]
 \centering
@@ -189,21 +189,23 @@ The analysis is performed in the next three steps as shown in Figure~\ref{fig:ec
 \caption{Economic modeling process}\label{fig:econ-eval-process-hesim}
 \end{figure}
 
-The three economic models described in Section~\ref{sec:model-taxonomy} are implemented as the \pkg{R6} classes \code{CohortDtstm}, \code{IndivCtstm}, and \code{Psm}. Methods are provided within each class for simulating disease progression, costs, and QALYs. These methods are made possible by separate \pkg{R6} classes for the disease, costs, and utility submodels. Below, we describe this modular design in more detail. 
+The three economic models described in Section~\ref{sec:model-taxonomy} are implemented as the \pkg{R6} classes \code{CohortDtstm}, \code{IndivCtstm}, and \code{Psm}. Each class contains methods for simulating disease progression, QALYs, and costs These methods are made possible by separate \pkg{R6} classes for the disease, utility, and cost submodels.  
 
 \subsection{Parameterization} \label{sec:parameterization}
-Each submodel contains fields for the model parameters and the input data. Parameters can either be created from a statistical model fit using \proglang{R} (e.g., a survival model) or input directly by the user. There are two types of parameter objects, standard parameter objects prefixed by \code{``params''} and transformed parameter objects prefixed by \code{``tparams''}. The former contain the underlying parameters of a statistical model while the latter contain parameters more immediate to prediction that have been transformed as function of the input data. The coefficients from a Weibull regression model are an example of a parameter object and the predicted shape and scale parameters of the Weibull distribution are an example of a transformed parameter object.
+Each submodel contains fields for the model parameters and the input data. Parameters can either be created from a statistical model fit using \proglang{R} or input directly by the user. There are two types of parameter objects, standard parameter objects prefixed by \code{``params''} and transformed parameter objects prefixed by \code{``tparams''}. The former contain the underlying parameters of a statistical model while the latter contain parameters more immediate to prediction that have been transformed as function of the input data. The coefficients from a Weibull regression model are an example of a parameter object and the predicted shape and scale parameters of the Weibull distribution are an example of a transformed parameter object.
 
 Although economic models are ideally parameterized using explicit statistical models, it is not always feasible. Parameters are often taken from a variety of sources or from summary level data. In these cases, it can be convenient to build models using mathematical expressions. This can be done when building cDTSTMs using \code{defime_model()}.
 
 \subsubsection{Disease progression}
 The statistical model used to parameterize the disease model depends on the type of economic model. For example, multinomial logistic regressions can be used to parameterize a cDTSTM, a set of N-1 independent survival models are used to parameterize an N-state partitioned survival model, and multi-state models can be used to parameterize an iCTSTM (Table~\ref{tbl:parameterize-disease-model}). 
-\begin{table} 
+
+
+\begin{table} [h]
 \caption{Parameterization of disease models}\label{tbl:parameterize-disease-model}
 \footnotesize
 \begin{tabular*}{\textwidth}{l l l l}
 \hline
-Economic model & Statistical model & Parameter object & Model fit object\\
+Economic model & Statistical model & Parameter object & Model object\\
 \hline
 \multirow{2}{*}{\code{CohortDtstm}}& Custom & \code{tparams_transprobs} & \code{define_model()}\\
  & Multinomial logistic regressions & \code{params_mlogit} & \code{multinom_list}\\
@@ -214,7 +216,64 @@ Economic model & Statistical model & Parameter object & Model fit object\\
 \end{tabular*}
 \end{table}
 
-The parameters of a survival model are stored in a \code{params_surv} object and a \code{params_surv_list} can be used to store the parameters of multiple survival models. The latter is useful for storing the parameters of a mutli-state model or the independent survival models required for a PSM. The parameters of a multinomial logistic regression are stored in a \code{params_mlogit} and can be created by fitting a model with \code{nnet::multinom()}.
+The parameters of a survival model are stored in a \code{params_surv} object and a \code{params_surv_list} can be used to store the parameters of multiple survival models. The latter is useful for storing the parameters of a multi-state model or the independent survival models required for a PSM. The parameters of a multinomial logistic regression are stored in a \code{params_mlogit} and can be created by fitting a model with \code{nnet::multinom()}.
+
+Although disease models are ideally parameterized by fitting a single statistical model, this is often infeasible. Parameters may be taken from multiple sources, frequently using summary level data. In these cases it can be more convenient to define transition probability matrices using mathematical expressions relating parameters and input data to transformed parameters. Transition probabilities for cDTSTMs can be constructed in this manner using \code{define_model()}.
+
+\subsubsection{Costs and utility} 
+State values (i.e., costs and utilities) do not depend on the choice of disease model. They can currently either be modeled using a linear model or using predicted means. The latter is an example of a transformed parameter object since the predicted means are parameters that are presumably a function of the underlying parameters of a statistical model and input data.
+
+\begin{table} [h]
+\caption{Parameterization of state value models}\label{tbl:parameterize-disease-model}
+\footnotesize
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l l l l}
+\hline
+Statistical model & Parameter object & Model object\\
+\hline
+\multirow{2}{*}{Predicted means} & \code{tparams_mean} & \code{stateval_tbl}\\
+ & \code{tparams_mean} & \code{define_model()}\\
+Linear model & \code{params_lm} & \code{stats::lm}\\
+\hline
+\end{tabular*}
+\end{table}
+
+The most straightforward way to construct state values is with a \code{stateval_tbl}, which is a special object used to assign values to health states that can vary across PSA samples, treatment strategies, patients, and/or time intervals. State values can be specified either as moments (i.e., mean and standard error) or parameters (e.g., shape and scale of gamma distribution) of a probability distribution, or by pre-simulating values from a suitable probability distribution (e.g., from a Bayesian model). Like transition probabilities, state value can also be constructed with \code{define_model}.
+
+\subsection{Simulation} \label{sec:simulation}
+The utility and cost models are always \pkg{R6} objects of class \code{StateVals}, whereas the disease models vary by economic model (Table~\ref{tbl:submodels}). The disease model is used to simulate survival curves in a PSM and health state transitions in a cDTSTM and iCTSTM.
+
+\begin{table} [h]
+\caption{Submodels comprising an economic model}\label{tbl:submodels}
+\footnotesize
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l l l l}
+\hline
+Economic model & Disease model & Utility model & Cost model(s)\\
+\hline
+\code{CohortDtstm} & \code{CohortDtstmTrans} & \code{StateVals} & \code{StateVals}\\
+\code{Psm} & \code{PsmCurves} & \code{StateVals} & \code{StateVals}\\
+\code{IndivCtstm} & \code{IndivCtstmTrans} & \code{StateVals} & \code{StateVals}\\
+\hline
+\end{tabular*}
+\end{table}
+
+The disease and state value models are most easily instantiated using \code{S3} generic functions prefixed by ``\code{create}'' from parameter, transformed parameter, or statistical model objects. An \code{IndivCtstmTrans} can, for instance, be created from a \code{flexsurvreg_list} or \code{params_surv_list} object with \code{create_IndivCtstmTrans()}. Similarly, a \code{StateVals} object can, for example, be created from a \code{stateval_tbl} object with \code{create_StateVals()}. The complete economic model is instantiated by combining the submodels using the \pkg{R6} constructor method \code{$new()}.
+
+Each economic model contains methods for simulating disease progression, QALYs, and costs (Table~\ref{tbl:simulate-outcomes}). The cost and utility models always simulate costs and QALYs from the simulated  progression of disease with the methods \code{$sim_qalys()} and \code{$sim_costs()}, respectively. Methods for simulating disease progression differ slightly since the simulation approaches differ as described in Section~\ref{sec:model-taxonomy}. In an N-state PSM $n-1$ survival curves are generated and in a iCTSTM a trajectory through state transitions is simulated for multiple patients via individual simulation. All models can simulate state probabilities over time.
+
+\begin{table} [h]
+\caption{Methods for simulating outcomes from economic models}\label{tbl:simulate-outcomes}
+\footnotesize
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l l l l}
+\hline
+Economic model & Disease progression  & QALYs & Costs \\
+\hline
+\code{CohortDtstm} & \code{sim_stateprobs()} & \code{sim_qalys()} & \code{sim_costs()}\\
+\code{Psm} & \code{sim_survival()}, \code{sim_stateprobs()}  & \code{sim_qalys()} & \code{sim_costs()}\\
+\code{IndivCtstm} & \code{sim_disease()}, \code{sim_stateprobs()}  & \code{sim_qalys()} & \code{sim_costs()}\\
+\hline
+\end{tabular*}
+\end{table}
+
 
 
 %% -- Bibliography -------------------------------------------------------------
