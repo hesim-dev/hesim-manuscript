@@ -95,7 +95,9 @@ Estimation of model parameters should ideally be performed using statistical mod
 
 Despite their computational demands and foundations in statistics, health economic models have historically been developed with specialized commercial software (e.g., \proglang{TreeAge}) or more commonly with a spreadsheet (almost always Microsoft \proglang{Excel}). The limitations of such software relative to programming languages like \proglang{R} have been increasingly emphasized in the literature \citep{baio2017simple, incerti2019r, jalal2017overview}. It is therefore no surprise that a number of related \proglang{R} packages have recently been developed, such as \pkg{BCEA} \citep{baio2017bayesian}, \pkg{SAVI} \citep{strong2014estimating}, \pkg{survHE} \citep{baio2020survhe}, and \pkg{heemod} \citep{filipovic2017markov}. Still, of the available packages, only \pkg{heemod} provides a general purpose framework for developing simulation models and it is limited to cohort Markov models. 
 
-\pkg{hesim} is an \proglang{R} package that advances the functionality and performance of the existing software. Multiple model types are supported including cohort discrete time state transition models (DTSTMs), N-state PSMs, and individual-level continuous time state transition models (CTSTMs), encompassing both Markov (time-homogeneous and time-inhomogeneous) and semi-Markov processes. To maximize flexibility and faciliate integration of the statistical methods and economic model, parameters can be estimated either by fitting a model in \proglang{R} or by inputting parameters obtained from external sources. So that individual-level simulation and PSA can be run quickly, \pkg{Rcpp} and \pkg{data.table} are heavily utilized. After simulating costs and quality-adjusted life-years (QALYs) from a PSA, decision analysis can be performed within a cost-effectiveness framework.
+\pkg{hesim} is an \proglang{R} package that advances the functionality and performance of the existing software. Multiple model types are supported including cohort discrete time state transition models (DTSTMs), N-state PSMs, and individual-level continuous time state transition models (CTSTMs), encompassing both Markov (time-homogeneous and time-inhomogeneous) and semi-Markov processes. To maximize flexibility and facilitate integration of the statistical methods and economic model, parameters can be estimated either by fitting a model in \proglang{R} or by inputting parameters obtained from external sources. So that individual-level simulation and PSA can be run quickly, \pkg{Rcpp} and \pkg{data.table} are heavily utilized. After simulating costs and quality-adjusted life-years (QALYs) from a PSA, decision analysis can be performed within a cost-effectiveness framework.
+
+The remainder of this article is organized as follows. Section~\ref{sec:model-taxonomy} describes the economic models supported by \pkg{hesim}. An overview of the coding framework is provided in Section~\ref{sec:framework}. The next two sections contain example analyses. Section~\ref{sec:modeling-aggregate} shows how both cohort and individual models can be used in the common scenario where only aggregate level data is available. Section~\ref{sec:modeling-patient} moves to a case where richer patient level data is available and shows how partitioned survival analysis and multi-state modeling can be employed. The cost-effectiveness framework is described in Section~\ref{sec:cea} along with worked examples. Section~\ref{sec:discussion} makes comparisons to other software and discusses possible extensions. Finally, Section~\ref{sec:conclusion} concludes.   
 
 %% -- Model taxonomy -----------------------------------------------------------
 \section{Model taxonomy} \label{sec:model-taxonomy}
@@ -274,7 +276,28 @@ Economic model & Disease progression  & QALYs & Costs \\
 \end{tabular*}
 \end{table}
 
+%% -- Models with aggregate level data -----------------------------------------
+\section{Economic modeling with aggregate level data} \label{sec:modeling-aggregate}
 
+\subsection{Cohort model}
+
+\subsection{Individual model}
+
+%% -- Models with patient level data -------------------------------------------
+\section{Economic modeling with patient level data} \label{sec:modeling-patient}
+
+\subsection{Partitioned survival analysis}
+
+\subsection{Multi-state model}
+
+%% -- Cost-effectiveness analysis ----------------------------------------------
+\section{Cost-effectiveness analysis} \label{sec:cea}
+
+%% -- Discussion ---------------------------------------------------------------
+\section{Discussion} \label{sec:discussion}
+
+%% -- Conclusion ---------------------------------------------------------------
+\section{Conclusion} \label{sec:conclusion}
 
 %% -- Bibliography -------------------------------------------------------------
 %% - References need to be provided in a .bib BibTeX database.
