@@ -309,6 +309,27 @@ Economic model & Disease progression  & QALYs & Costs \\
 %% -- Models with aggregate level data -----------------------------------------
 \section{Economic modeling with aggregate level data} \label{sec:modeling-aggregate}
 
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+% States
+\node[draw, minimum height=1cm, minimum width=2cm, font=\footnotesize] (S1) {\textbf{State 1}};
+\node[draw, minimum height=1cm, minimum width=2cm, font=\footnotesize] (S2) [right = of S1] {\textbf{State 2}};
+\node[draw, minimum height=1cm, minimum width=2cm, font=\footnotesize] (S3) [right = of S2] {\textbf{State 3}};
+\node[draw, minimum height=1cm, minimum width=2cm, font=\footnotesize] (D) [below = of S2] {\textbf{Death}};
+
+% Arrows
+\draw [thick, <->] (S1.east) -- (S2.west);
+\draw [thick, ->] (S2.east) -- (S3.west);
+\draw [thick, ->] (S1.south) -- (D.west);
+\draw [thick, ->] (S2.south) -- (D.north);
+\draw [thick, ->] (S3.south) -- (D.east);
+
+\end{tikzpicture}
+\caption{Four state disease progression model}\label{fig:econ-eval-process-hesim}
+\end{figure}
+
 \subsection{Cohort model}
 
 \subsection{Individual model}
