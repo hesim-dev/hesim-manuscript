@@ -8,6 +8,8 @@
 %% other packages
 \usepackage{algorithm}
 \usepackage{multirow}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
 \usepackage{caption} 
 \captionsetup[table]{skip=5pt}
 
@@ -183,15 +185,43 @@ Survival functions are estimated by fitting parametric or flexible parametric su
 \section{Framework} \label{sec:framework}
 Economic models consist of a disease model, a utility model, and a set of cost models for each cost category. Model development proceed in 4 steps. The first step is to setup the model by defining the model structure, target population, and treatment strategies of interest, and storing the relevant information in a \code{hesim_data} object. 
 
-The analysis is performed in the next three steps as shown in Figure~\ref{fig:econ-eval-process-hesim}. First, the disease progression, costs, and utility submodels are parameterized using ``estimation'' datasets. Next, the submodels are combined to construct an economic model. The economic model is then used to simulate, disease progression, QALYs, and costs as a function of ``input data''. The input data always contains variables describing the target population and treatment strategies of interest, but can also contain variables related to time to facilitate use of time-varying covariates or parameters. Finally, the simulated outcomes are used to perform decision analysis, currently limited to CEA. All models are simulated using PSA so that decision uncertainty can be represented.  
+The analysis is performed in the next three steps as shown in Figure~\ref{fig:econ-eval-process-hesim}. First, the disease progression, costs, and utility submodels are parameterized using ``estimation'' datasets. Next, the submodels are combined to construct an economic model. The economic model is then used to simulate, disease progression, QALYs, and costs as a function of ``input data''. The input data always contains variables describing the target population and treatment strategies of interest, but can also contain variables related to time to facilitate use of time-varying covariates or parameters. Finally, the simulated outcomes are used to perform decision analysis within a cost-effectiveness framework. While other approaches such as multi-criteria decision analysis (MCDA) could, in principle, be used as well, only CEA is currently supported. All models are simulated using PSA so that decision uncertainty can be represented.  
 
 \begin{figure}[h]
 \centering
-\includegraphics[width = 15cm]{econ-eval-process-hesim.png}
+\begin{tikzpicture}
+% Parameterization
+\node[draw, minimum height=4cm, minimum width=3.5cm, font=\footnotesize, text depth = 3.5cm] (A) at (-5,0) {\textbf{1. Parameterization}};
+\node[draw,fill=white, minimum height=.8cm, minimum width=2.5cm, font=\footnotesize] at (-5, .8){Disease model};
+\node[draw,fill=white, minimum height=.8cm, minimum width=2.5cm, font=\footnotesize] at (-5, -.2){Utility model};
+\node[draw,fill=white, minimum height=.8cm, minimum width=2.5cm, font=\footnotesize] at (-5, -1.2){Cost model(s)};
+
+% Simulation
+\node[draw, minimum height=4cm, minimum width=3.5cm, font=\footnotesize, text depth = 3.5cm] (B) at (0,0) {\textbf{2. Simulation}};
+\node[draw,fill=white, minimum height=.8cm, minimum width=2.5cm, font=\footnotesize] at (0, .8){Disease model};
+\node[draw,fill=white, minimum height=.8cm, minimum width=2.5cm, font=\footnotesize] at (0, -.2){Utility model};
+\node[draw,fill=white, minimum height=.8cm, minimum width=2.5cm, font=\footnotesize] at (0, -1.2){Cost model(s)};
+
+% Decision analysis
+\node[draw, minimum height=4cm, minimum width=3.5cm, font=\footnotesize, text depth = 3.5cm] (C) at (5,0) {\textbf{3. Decision analysis}};
+\node[draw,fill=white, minimum height=.8cm, minimum width=2.5cm, font=\footnotesize] at (5, .3){CEA};
+\node[draw,fill=white, minimum height=.8cm, minimum width=2.5cm, font=\footnotesize] at (5, -.7){MCDA};
+
+% Data
+\node[draw, above = .5 of A, minimum width=3cm, font=\footnotesize] (D) {Estimation data};
+\node[draw, above = .5 of B, minimum width=3cm, font=\footnotesize] (E) {Input data};
+
+% Arrows
+\draw [thick, ->] (A.east) -- (B.west);
+\draw [thick, ->] (B.east) -- (C.west);
+\draw [thick, ->] (D.south) -- (A.north);
+\draw [thick, ->] (E.south) -- (B.north);
+
+\end{tikzpicture}
 \caption{Economic modeling process}\label{fig:econ-eval-process-hesim}
 \end{figure}
 
-The three economic models described in Section~\ref{sec:model-taxonomy} are implemented as the \pkg{R6} classes \code{CohortDtstm}, \code{IndivCtstm}, and \code{Psm}. Each class contains methods for simulating disease progression, QALYs, and costs These methods are made possible by separate \pkg{R6} classes for the disease, utility, and cost submodels.  
+The three economic models described in Section~\ref{sec:model-taxonomy} are implemented as the \pkg{R6} classes \code{CohortDtstm}, \code{IndivCtstm}, and \code{Psm}. Each class contains methods for simulating disease progression, QALYs, and costs. These methods are made possible by separate \pkg{R6} classes for the disease, utility, and cost submodels. The remainder of this section describes the framework for parameterization and simulation. The cost-effectiveness framework is described in Section~\ref{sec:cea}. 
 
 \subsection{Parameterization} \label{sec:parameterization}
 Each submodel contains fields for the model parameters and the input data. Parameters can either be created from a statistical model fit using \proglang{R} or input directly by the user. There are two types of parameter objects, standard parameter objects prefixed by \code{``params''} and transformed parameter objects prefixed by \code{``tparams''}. The former contain the underlying parameters of a statistical model while the latter contain parameters more immediate to prediction that have been transformed as function of the input data. The coefficients from a Weibull regression model are an example of a parameter object and the predicted shape and scale parameters of the Weibull distribution are an example of a transformed parameter object.
