@@ -19,7 +19,7 @@
 
 %% For Sweave-based articles about R packages:
 %% need no \usepackage{Sweave}
-\SweaveOpts{engine=R, eps=FALSE, keep.source = TRUE}
+\SweaveOpts{engine = R, eps = FALSE, keep.source = TRUE, eval = TRUE}
 <<preliminaries, echo=FALSE, results=hide>>=
 options(prompt = "R> ", continue = "+  ", width = 70, useFancyQuotes = FALSE)
 @
@@ -308,7 +308,7 @@ Economic model & Disease progression  & QALYs & Costs \\
 
 %% -- Models with aggregate level data -----------------------------------------
 \section{Economic modeling with aggregate level data} \label{sec:modeling-aggregate}
-
+Health economic models are commonly developed using aggregate level data taken from multiple sources. In these cases it is helpful to be able input model parameters rather than fitting a statistical model. We illustrate with the 4 state disease progression model displayed in Figure~\ref{fig:four-state-model}. Patients advance between successively more severe disease states. It is possible to move from State 2 back to State 1 but recovery is not possible from State 3. Death can occur from any state. 
 
 \begin{figure}[h]
 \centering
@@ -327,10 +327,71 @@ Economic model & Disease progression  & QALYs & Costs \\
 \draw [thick, ->] (S3.south) -- (D.east);
 
 \end{tikzpicture}
-\caption{Four state disease progression model}\label{fig:econ-eval-process-hesim}
+\caption{Four state disease progression model}\label{fig:four-state-model}
 \end{figure}
 
+There are 3 treatment strategies: standard of care (SOC) and two new interventions (New 1 and New 2). For illustration, we will consider a target population approximated by two representative patients of age 60 and 70. The 60-year old patient represents $1/3$ of all patients with the disease while the 70-year old patient represents $2/3$. The \code{hesim_data} class is used to store this data.  
+
+<<>>=
+library("hesim")
+library("data.table")
+strategies <- data.table(
+  strategy_id = 1:3,
+  strategy_name = c("SOC", "New 1", "New 2")
+)
+patients <- data.table(
+  patient_id = 1:2,
+  grp_id = 1:2,
+  age = c(60, 70),
+  patient_wt = c(1/3, 2/3)
+)
+hesim_dat <- hesim_data(
+  strategies = strategies,
+  patients = patients
+)
+print(hesim_dat)
+@
+
 \subsection{Cohort model}
+\subsubsection{Parameterization}
+Model parameters related to transition probabilities are obtained from a hypothetical analysis of a natural history cohort. If data is not collected at unevenly spaced intervals, then transitions can be described with transition intensity matrices, $Q$, by fitting a continuous time multi-state model designed for panel data (e.g., with the \proglang{R} package \pkg{msm}) \citep{jackson2011multi}. We assume that regression coefficients and a covariance matrix for $Q$ are available from such an analysis.
+
+<<q_coef, echo = FALSE>>=
+trans <- c("1->2", "1->4", "2->1", "2->3", "3->4")
+q_coef_int <- log(c(.9, .2, .5, 1.1, 1.5))
+q_coef_time <- rep(log(1.2), 5)
+q_coef_age <- rep(log(1.05), 5)
+q_coef_soc <- data.table(
+  trans = rep(trans, 3),
+  var = rep(c("intercept", "time[2,Inf)", "age"), each = 5),
+  loghr = c(q_coef_int, q_coef_time, q_coef_age)
+)
+@
+
+<<q_vcov, echo = FALSE>>=
+n_vars <- nrow(q_coef_soc)
+A <- matrix(runif(n_vars^2) * 2 - 1, ncol = 15)/30
+q_vcov_soc <- t(A) %*% A
+@
+
+<<q_vcov_print>>=
+q_vcov_soc[1:4, 1:4]
+@
+
+If many studies are available, then relative treatment effects can be estimated by means of a network meta-analysis. We assume that an NMA was performed to estimate the relative risk of transitions from state 1 to both state 2 and death. Treatment strategy 1 was the reference arm. Estimation is performed in terms of the log relative risk since it is approximately normally distributed. 
+
+The utility associated with each state is assumed to follow a beta distribution, which is bounded between 0 and 1. The beta distribution is defined in terms of 2 shape parameters, but can be derived from the mean and standard error using the method of moments. Point estimates for utility in states 1, 2, and 3 are 0.9, 0.75, and 0.5, respectively. Standard errors in the same three states are 0.02, 0.03, and 0.05. Utility is always assumed to be 0 in death states in \pkg{hesim}.
+
+<<params>>=
+params <- list(
+  q_coef_soc = q_coef_soc,
+  q_vcov_soc = q_vcov_soc,
+  lrr_est = c(log(.80), log(.71)),
+  lrr_se = c(log(.06), log(.08)),
+  u_mean = c(.9, .75, .05),
+  u_se = c(.02, .03, .05)
+)
+@
 
 \subsection{Individual model}
 
