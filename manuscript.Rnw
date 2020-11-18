@@ -226,7 +226,7 @@ The three economic models described in Section~\ref{sec:model-taxonomy} are impl
 \subsection{Parameterization} \label{sec:parameterization}
 Each submodel contains fields for the model parameters and the input data. Parameters can either be created from a statistical model fit using \proglang{R} or input directly by the user. There are two types of parameter objects, standard parameter objects prefixed by \code{``params''} and transformed parameter objects prefixed by \code{``tparams''}. The former contain the underlying parameters of a statistical model while the latter contain parameters more immediate to prediction that have been transformed as function of the input data. The coefficients from a Weibull regression model are an example of a parameter object and the predicted shape and scale parameters of the Weibull distribution are an example of a transformed parameter object.
 
-Although economic models are ideally parameterized using explicit statistical models, it is not always feasible. Parameters are often taken from a variety of sources or from summary level data. In these cases, it can be convenient to build models using mathematical expressions. This can be done when building cDTSTMs using \code{defime_model()}.
+Although economic models are ideally parameterized using explicit statistical models, it is not always feasible. Parameters are often taken from a variety of sources or from summary level data. In these cases, it can be convenient to build models with mathematical expressions usin non-standard evaluation. This can be done when building cDTSTMs using \code{defime_model()}.
 
 \subsubsection{Disease progression}
 The statistical model used to parameterize the disease model depends on the type of economic model. For example, multinomial logistic regressions can be used to parameterize a cDTSTM, a set of N-1 independent survival models are used to parameterize an N-state partitioned survival model, and multi-state models can be used to parameterize an iCTSTM (Table~\ref{tbl:parameterize-disease-model}). 
@@ -354,7 +354,7 @@ print(hesim_dat)
 
 \subsection{Cohort model}
 \subsubsection{Parameterization}
-Model parameters related to transition probabilities are obtained from a hypothetical analysis of a natural history cohort. If data is not collected at unevenly spaced intervals, then transitions can be described with transition intensity matrices, $Q$, by fitting a continuous time multi-state model designed for panel data (e.g., with the \proglang{R} package \pkg{msm}) \citep{jackson2011multi}. We assume that regression coefficients and a covariance matrix for $Q$ are available from such an analysis.
+Model parameters related to transition probabilities for SOC are obtained from a hypothetical analysis of a historical cohort. If data is collected at unevenly spaced intervals, then transitions can be described with transition intensity matrices, $Q$, by fitting a continuous time multi-state model designed for panel data (e.g., with the \proglang{R} package \pkg{msm}) \citep{jackson2011multi}. We assume that regression coefficients and a covariance matrix for $Q$ are available from such an analysis.
 
 <<q_coef, echo = FALSE>>=
 trans <- c("1->2", "1->4", "2->1", "2->3", "3->4")
@@ -368,29 +368,57 @@ q_coef_soc <- data.table(
 )
 @
 
-<<q_vcov, echo = FALSE>>=
+<<q_coef_soc_print>>=
+q_coef_soc
+@
+
+<<q_vcov_soc, echo = FALSE>>=
 n_vars <- nrow(q_coef_soc)
 A <- matrix(runif(n_vars^2) * 2 - 1, ncol = 15)/30
 q_vcov_soc <- t(A) %*% A
 @
 
-<<q_vcov_print>>=
+<<q_vcov_soc_print>>=
 q_vcov_soc[1:4, 1:4]
 @
 
-If many studies are available, then relative treatment effects can be estimated by means of a network meta-analysis. We assume that an NMA was performed to estimate the relative risk of transitions from state 1 to both state 2 and death. Treatment strategy 1 was the reference arm. Estimation is performed in terms of the log relative risk since it is approximately normally distributed. 
+If many studies are available, then relative treatment effects can be estimated by means of a network meta-analysis (NMA). We assume that a NMA was performed to estimate the relative risk of transitions from State 1 to both State 2 and Death. The SOC was the reference arm. Estimation is performed in terms of the log relative risk since it is approximately normally distributed. 
 
-The utility associated with each state is assumed to follow a beta distribution, which is bounded between 0 and 1. The beta distribution is defined in terms of 2 shape parameters, but can be derived from the mean and standard error using the method of moments. Point estimates for utility in states 1, 2, and 3 are 0.9, 0.75, and 0.5, respectively. Standard errors in the same three states are 0.02, 0.03, and 0.05. Utility is always assumed to be 0 in death states in \pkg{hesim}.
+The utility associated with each state is assumed to follow a beta distribution, which is bounded between 0 and 1. The beta distribution is defined in terms of 2 shape parameters, but can be derived from the mean and standard error using the method of moments. Point estimates for utility in State 1, State 2, and State 3 are 0.9, 0.75, and 0.5, respectively. Standard errors in the same three states are 0.02, 0.03, and 0.05. Utility (and costs) are always assumed to be 0 in the death state.
+
+We assume that two categories of costs are measured: treatment and medical. The former are the costs of the three treatment strategies and are assumed fixed. The SOC is the cheapest option at \$2,000 per annum while New 1 and New 2 cost \$10,000 and \$12,000 per year, respectively. 
+
+While there is no uniform way to define medical costs, they often consist of costs accrued from hospitalizations and inpatient visits. They are assumed to follow a gamma distribution given that they are usually heavily right skewed. Like the beta distribution, the parameters of the gamma distribution are derived from the mean and standard error using the method of moments. Mean medical costs are \$2,000, \$4,000, and \$15,000 in State 1, State 2, and State 3, respectively. We assume the variance  is unavailable and set the standard error in each state equal to the mean.  
 
 <<params>>=
 params <- list(
   q_coef_soc = q_coef_soc,
   q_vcov_soc = q_vcov_soc,
   lrr_est = c(log(.80), log(.71)),
-  lrr_se = c(log(.06), log(.08)),
-  u_mean = c(.9, .75, .05),
-  u_se = c(.02, .03, .05)
+  lrr_se = c(.06, .08),
+  u_mean = c(s1 = .9, s2 = .75, s3 = .05),
+  u_se = c(s1 = .02, s2 = .03, s3 = .05),
+  c_medical = c(s1 = 2000, s2 = 4000, s3 = 15000),
+  c_tx = c(soc = 2000, new1 = 10000, new2 = 12000)
 )
+@
+
+To perform a PSA, it is necessary to randomly draw the parameters from suitable probability distributions. These distributions can be defined using \code{define_rng()}. While any random number generation function can be used, a number of commonly used distributions are specifically designed for use within a \code{define_rng()} block (see \code{?rng_distributions}). The random number generation expressions can either be directly evaluated with \code{eval_rng()} or passed to \code{define_model()} and evaluated during construction of the economic model. We will take the latter approach here.
+
+<<define_rng>>=
+rng_def <- define_rng({
+  list( # Parameters to return
+    q_coef = multi_normal_rng(q_coef_soc$loghr, q_vcov_soc),
+    lrr = lognormal_rng(lrr_est, lrr_se),
+    u = beta_rng(mean = u_mean, sd = u_se),
+    c_tx = fixed(c_tx),
+    c_medical = gamma_rng(mean = c_medical, sd = c_medical)
+  )
+}, n = 1000)
+@
+
+<<eval_rng, eval = FALSE, echo = FALSE>>=
+eval_rng(rng_def, params = params)
 @
 
 \subsection{Individual model}
