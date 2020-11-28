@@ -22,6 +22,7 @@
 \SweaveOpts{engine = R, eps = FALSE, keep.source = TRUE, eval = TRUE}
 <<preliminaries, echo=FALSE, results=hide>>=
 options(prompt = "R> ", continue = "+  ", width = 70, useFancyQuotes = FALSE)
+set.seed(101)
 @
 
 
@@ -99,7 +100,7 @@ Despite their computational demands and foundations in statistics, health econom
 
 \pkg{hesim} is an \proglang{R} package that advances the functionality and performance of the existing software. Multiple model types are supported including cohort discrete time state transition models (DTSTMs), N-state PSMs, and individual-level continuous time state transition models (CTSTMs), encompassing both Markov (time-homogeneous and time-inhomogeneous) and semi-Markov processes. To maximize flexibility and facilitate integration of the statistical methods and economic model, parameters can be estimated either by fitting a model in \proglang{R} or by inputting parameters obtained from external sources. So that individual-level simulation and PSA can be run quickly, \pkg{Rcpp} and \pkg{data.table} are heavily utilized. After simulating costs and quality-adjusted life-years (QALYs) from a PSA, decision analysis can be performed within a cost-effectiveness framework.
 
-The remainder of this article is organized as follows. Section~\ref{sec:model-taxonomy} describes the economic models supported by \pkg{hesim}. An overview of the coding framework is provided in Section~\ref{sec:framework}. The next two sections contain example analyses. Section~\ref{sec:modeling-aggregate} shows how both cohort and individual models can be used in the common scenario where only aggregate level data is available. Section~\ref{sec:modeling-patient} moves to a case where richer patient level data is available and shows how partitioned survival analysis and multi-state modeling can be employed. The cost-effectiveness framework is described in Section~\ref{sec:cea} along with worked examples. Section~\ref{sec:discussion} makes comparisons to other software and discusses possible extensions. Finally, Section~\ref{sec:conclusion} concludes.   
+The remainder of this article is organized as follows. Section~\ref{sec:model-taxonomy} describes the economic models supported by \pkg{hesim}. An overview of the coding framework is provided in Section~\ref{sec:framework}. The next two sections contain example analyses. Section~\ref{sec:modeling-patient} shows how both partitioned survival and multi-state models can be used in an ideal case where rich patient level data is available. Section~\ref{sec:modeling-aggregate} then moves to the common scenario where only aggregate level data is available shows how both cohort and individual models can be employed. The cost-effectiveness framework is described in Section~\ref{sec:cea} along with worked examples. Section~\ref{sec:discussion} makes comparisons to other software and discusses possible extensions. Finally, Section~\ref{sec:conclusion} concludes.   
 
 %% -- Model taxonomy -----------------------------------------------------------
 \section{Model taxonomy} \label{sec:model-taxonomy}
@@ -306,6 +307,13 @@ Economic model & Disease progression  & QALYs & Costs \\
 \end{tabular*}
 \end{table}
 
+%% -- Models with patient level data -------------------------------------------
+\section{Economic modeling with patient level data} \label{sec:modeling-patient}
+
+\subsection{Partitioned survival analysis}
+
+\subsection{Multi-state model}
+
 %% -- Models with aggregate level data -----------------------------------------
 \section{Economic modeling with aggregate level data} \label{sec:modeling-aggregate}
 Health economic models are commonly developed using aggregate level data taken from multiple sources. In these cases it is helpful to be able input model parameters rather than fitting a statistical model. We illustrate with the 4 state disease progression model displayed in Figure~\ref{fig:four-state-model}. Patients advance between successively more severe disease states. It is possible to move from State 2 back to State 1 but recovery is not possible from State 3. Death can occur from any state. 
@@ -330,40 +338,70 @@ Health economic models are commonly developed using aggregate level data taken f
 \caption{Four state disease progression model}\label{fig:four-state-model}
 \end{figure}
 
-There are 3 treatment strategies: standard of care (SOC) and two new interventions (New 1 and New 2). For illustration, we will consider a target population approximated by two representative patients of age 60 and 70. The 60-year old patient represents $1/3$ of all patients with the disease while the 70-year old patient represents $2/3$. The \code{hesim_data} class is used to store this data.  
+The four health states and five possible transitions are characterized below.
 
-<<>>=
-library("hesim")
+<<q_coef, echo = FALSE>>=
 library("data.table")
+states <- data.table(
+  state_id = c(1, 2, 3, 4),
+  state_name = c(paste0("State ", 1:3), "Death")
+)
+
+tmat <- rbind(
+  c(NA, 1, NA, 2),
+  c(3, NA, 4, NA),
+  c(NA, NA, NA, 5),
+  c(NA, NA, NA, NA)
+)
+colnames(tmat) <- rownames(tmat) <- states$state_name
+n_trans <- max(tmat)
+print(tmat)
+@
+
+There are 3 treatment strategies: standard of care (SOC) and two new interventions (New 1 and New 2). For illustration, we will consider a target population approximated by two representative patients of age 60 and 70. The 60-year old patient represents $1/3$ of all patients with the disease while the 70-year old patient represents $2/3$. The \code{hesim_data} class is again used to store this data as well as the number of non-death health states.  
+
+<<hesim_data>>=
+library("hesim")
 strategies <- data.table(
   strategy_id = 1:3,
-  strategy_name = c("SOC", "New 1", "New 2")
+  strategy_name = c("SOC", "New 1", "New 2"),
+  soc = c(1, 0, 0),
+  new1 = c(0, 1, 0),
+  new2 = c(0, 0, 1)
 )
+
 patients <- data.table(
   patient_id = 1:2,
   grp_id = 1:2,
   age = c(60, 70),
   patient_wt = c(1/3, 2/3)
 )
+
 hesim_dat <- hesim_data(
   strategies = strategies,
-  patients = patients
+  patients = patients,
+  states = states[state_name != "Death"]
 )
 print(hesim_dat)
 @
 
+
 \subsection{Cohort model}
 \subsubsection{Parameterization}
-Model parameters related to transition probabilities for SOC are obtained from a hypothetical analysis of a historical cohort. If data is collected at unevenly spaced intervals, then transitions can be described with transition intensity matrices, $Q$, by fitting a continuous time multi-state model designed for panel data (e.g., with the \proglang{R} package \pkg{msm}) \citep{jackson2011multi}. We assume that regression coefficients and a covariance matrix for $Q$ are available from such an analysis.
+The core of a cohort DTSTM is the disease model which is determined by the transition matrices $P_t$. In this example, model parameters related to the transition probabilities for SOC are obtained from a hypothetical analysis of a historical cohort. If data is collected at unevenly spaced intervals, then transitions can be described with transition intensity matrices, $Q_t$, by fitting a continuous time multi-state model designed for panel data (e.g., with the \proglang{R} package \pkg{msm}) \citep{jackson2011multi}. We assume that regression coefficients and a covariance matrix are available from such an analysis and that a piecewise exponential model was fit so that intensities change after year 2. 
 
 <<q_coef, echo = FALSE>>=
 trans <- c("1->2", "1->4", "2->1", "2->3", "3->4")
+trans_short <- c("12", "14", "21", "23", "34")
+var_short <- c("int", "time", "age") 
+var_long <- c("intercept", "time[2,Inf)", "age") 
 q_coef_int <- log(c(.9, .2, .5, 1.1, 1.5))
 q_coef_time <- rep(log(1.2), 5)
-q_coef_age <- rep(log(1.05), 5)
+q_coef_age <- rep(log(1.003), 5)
 q_coef_soc <- data.table(
   trans = rep(trans, 3),
-  var = rep(c("intercept", "time[2,Inf)", "age"), each = 5),
+  var = rep(var_long, each = 5),
+  name = paste0(rep(var_short, each = 5), "_", rep(trans_short, 3)),
   loghr = c(q_coef_int, q_coef_time, q_coef_age)
 )
 @
@@ -374,7 +412,7 @@ q_coef_soc
 
 <<q_vcov_soc, echo = FALSE>>=
 n_vars <- nrow(q_coef_soc)
-A <- matrix(runif(n_vars^2) * 2 - 1, ncol = 15)/30
+A <- matrix(runif(n_vars^2) * 2 - 1, ncol = 15)/60
 q_vcov_soc <- t(A) %*% A
 @
 
@@ -388,14 +426,16 @@ The utility associated with each state is assumed to follow a beta distribution,
 
 We assume that two categories of costs are measured: treatment and medical. The former are the costs of the three treatment strategies and are assumed fixed. The SOC is the cheapest option at \$2,000 per annum while New 1 and New 2 cost \$10,000 and \$12,000 per year, respectively. 
 
-While there is no uniform way to define medical costs, they often consist of costs accrued from hospitalizations and inpatient visits. They are assumed to follow a gamma distribution given that they are usually heavily right skewed. Like the beta distribution, the parameters of the gamma distribution are derived from the mean and standard error using the method of moments. Mean medical costs are \$2,000, \$4,000, and \$15,000 in State 1, State 2, and State 3, respectively. We assume the variance  is unavailable and set the standard error in each state equal to the mean.  
+While there is no uniform way to define medical costs, they often consist of costs accrued from hospitalizations and inpatient visits. They are assumed to follow a gamma distribution given that they are usually heavily right skewed. Like the beta distribution, the parameters of the gamma distribution are derived from the mean and standard error using the method of moments. Mean medical costs are \$2,000, \$4,000, and \$15,000 in State 1, State 2, and State 3, respectively. We assume the variance is unavailable and set the standard error in each state equal to the mean.  
 
 <<params>>=
 params <- list(
   q_coef_soc = q_coef_soc,
   q_vcov_soc = q_vcov_soc,
-  lrr_est = c(log(.80), log(.71)),
-  lrr_se = c(.06, .08),
+  lrr_12_est = c(soc = log(1), new1 = log(.80), new2 = log(.71)),
+  lrr_12_se = c(soc = 0, new1 = .03, new2 = .04),
+  lrr_14_est = c(soc = log(1), new1 = log(.90), new2 = log(.85)),
+  lrr_14_se = c(soc = 0, new1 = .02, new2 = .03),
   u_mean = c(s1 = .9, s2 = .75, s3 = .05),
   u_se = c(s1 = .02, s2 = .03, s3 = .05),
   c_medical = c(s1 = 2000, s2 = 4000, s3 = 15000),
@@ -403,32 +443,192 @@ params <- list(
 )
 @
 
-To perform a PSA, it is necessary to randomly draw the parameters from suitable probability distributions. These distributions can be defined using \code{define_rng()}. While any random number generation function can be used, a number of commonly used distributions are specifically designed for use within a \code{define_rng()} block (see \code{?rng_distributions}). The random number generation expressions can either be directly evaluated with \code{eval_rng()} or passed to \code{define_model()} and evaluated during construction of the economic model. We will take the latter approach here.
+To perform a PSA, it is necessary to randomly draw the parameters from suitable probability distributions. These distributions can be defined using \code{define_rng()}. While any random number generation function can be used, a number of commonly used distributions are specifically designed for use within a \code{define_rng()} block (see \code{?rng_distributions}). The built in distributions do not require specification of the number of PSA iterations (since it is defined within the block) and automatically perform certain operations (e.g., sampling from a gamma distribution from means and standard errors by usin methods of moments to derive the underlying shape and scale parameters). We include utility for illustrative purposes but omit the cost parameters since they can be sampled more directly with \code{stateva_tbl()}.
 
 <<define_rng>>=
 rng_def <- define_rng({
   list( # Parameters to return
-    q_coef = multi_normal_rng(q_coef_soc$loghr, q_vcov_soc),
-    lrr = lognormal_rng(lrr_est, lrr_se),
-    u = beta_rng(mean = u_mean, sd = u_se),
-    c_tx = fixed(c_tx),
-    c_medical = gamma_rng(mean = c_medical, sd = c_medical)
+    q_coef_soc = multi_normal_rng(q_coef_soc$loghr, q_vcov_soc,
+                                  names = q_coef_soc$name),
+    rr_12 = lognormal_rng(lrr_12_est, lrr_12_se),
+    rr_14 = lognormal_rng(lrr_14_est, lrr_14_se),
+    u = beta_rng(mean = u_mean, sd = u_se)
   )
 }, n = 1000)
 @
 
-<<eval_rng, eval = FALSE, echo = FALSE>>=
-eval_rng(rng_def, params = params)
+The random number generation expressions can are evaluated with \code{eval_rng()}.
+
+<<eval_rng>>=
+params_rng <- eval_rng(rng_def, params = params)
+@
+
+The transition intensity matrices and relative risks can be combined to derive the relevant transition probability matrices, stored as a \code{tparams_transprobs} object. A \code{tparams_transprobs} is simply a 3-dimensional array of transition probability matrices with a unique predicted matrix for each PSA sample, treatment strategy, representative patient, and (optionally) time interval. As in the prior example, the underlying input data can be constructed with \code{expand}.
+
+<<transmod_data>>=
+transmod_data <- expand(hesim_dat, by = c("strategies", "patients"),
+                        times = 2)
+head(transmod_data)
+@
+
+A complete dataset of ID variables that also incorporate the PSA iterations is constructed with \code{tpmatrix_id()}. The objective is to construct a transition probability for each row in this dataset. The user has complete flexibility to do this.
+
+<<tpmat_id>>=
+tpmat_id <- tpmatrix_id(transmod_data, rng_def$n)
+head(tpmat_id)
+@
+
+In this example we do this by first using the coefficients and input data to to predict transition intensity matrices for SOC (by age group and time interval). This is done by separately predicting intensities for all feasible transitions. There are $n=4$ observations for SOC and $B=1000$ random draws of the coefficients for the PSA. A transition from state $r$ to state $s$ is modeled as $log(q_{rs}) = X\beta^T$ where $X$ is an $n \times 3$ design matrix and $\beta$ is a $B \times 3$ sample of the coefficients. The resulting $n \times B$ matrix can be conveniently flattened into a vector of length $nB$ with the \code{c()} function so that predicted values are stacked by parameter sample as in \code{tpmatrix_id()}. 
+
+<<Q_soc>>=
+predict_q_soc <- function(data, beta){
+  data_soc <- data[strategy_name == "SOC"]
+  x <- model.matrix(~factor(time_start) + age, data = data_soc)
+  n_trans <- 5
+  qmat_soc <- matrix(NA, nrow = nrow(beta) * nrow(x), ncol = n_trans)
+  colnames(qmat_soc) <- c("q_12", "q_14", "q_21", "q_23", "q34")
+  for (i in 1:n_trans) {
+     beta_i <- as.matrix(beta)[, seq(i, ncol(beta), n_trans)]
+     qmat_soc[, i] <- exp(c(x %*% t(beta_i)))
+  }
+  return(qmat_soc)
+}
+q_soc <- predict_q_soc(transmod_data, params_rng$q_coef_soc)
+head(q_soc)
+@
+
+The predicted transition intensities are, in turn, use to form the complete transition intensity matrix. Specifically, \code{qmatrix()} forms an array of transition intensity matrices where each row sums to $0$ so that $q_{rr} = \sum_{s \neq r} -q_{rs}$.
+
+<<Q_soc>>=
+qmat_soc <- qmatrix(q_soc, tmat)
+qmat_soc[,, 1]
+@
+
+Transition probability matrices are constructed from the transition intensity matrices using the matrix exponential \citep{jackson2011multi}. In continuous time, $P(t) = \exp(tQ)$ so a transition probability matrix with model cycles of length $t$ years is given by $\exp(Q_t)$. In this example we will assume model cycles are 1/2 of a year. 
+
+<<P_soc>>=
+pmat_soc <- expmat(qmat_soc, t = 1/2)
+pmat_soc[,, 1]
+@
+
+Transition probability matrices can be derived for treatment strategies New 1 and New 2 using the relative risks. Relative risks are predicted for each row in the \code{tmat_id} dataset above.
+
+<<rr>>=
+x_rr <- as.matrix(transmod_data[, .(soc, new1, new2)])
+rr_12 <- c(x_rr %*% t(params_rng$rr_12))
+rr_14 <- c(x_rr %*% t(params_rng$rr_14))
+rr <- cbind(rr_12, rr_14)
+@
+
+Given reference transition probability matrices (i.e., those for SOC), we can apply the relative risks for the other treatment strategies using the \code{apply_rr()} function. An array of transition probability matrices is returned with one matrix for each row in \code{rr}.
+
+<<apply_rr>>=
+pmat <- apply_rr(pmat_soc, rr = rr,
+                 index = list(c(1, 2), c(1, 4)))
+@
+
+Finally, the array of transition probability matrices is combined with the relevant ID variables indexing each array slice to create the \code{tparams_transprobs} object. 
+
+<<apply_rr>>=
+tprobs <- tparams_transprobs(pmat, tpmat_id)
+@
+
+The utility and cost parameters are much more straightforward to store. As in the previous example we consider two cost categories and store parameter values in a \code{stateval_tbl}.
+
+<<tx_costs>>=
+txcost_tbl <- stateval_tbl(
+  data.table(
+    strategy_id = 1:3,
+    est = c(soc = 2000, new1 = 10000, new2 = 12000)
+  ),
+  dist = "fixed",
+  hesim_data = hesim_dat
+)
+head(txcost_tbl)
+@
+
+<<tx_costs>>=
+medcost_tbl <- stateval_tbl(
+  data.table(
+    state_id = 1:3,
+    mean = c(s1 = 2000, s2 = 4000, s3 = 15000),
+    se = c(s1 = 2000, s2 = 4000, s3 = 15000)
+  ),
+  dist = "gamma",
+  hesim_data = hesim_dat
+)
+head(medcost_tbl)
+@
+
+Although we could do the same for utility, we illustrate an alternative approach in which the distribution of utility values has been previously drawn from a suitable probability distribution. While not necessary in this case, this feature might be useful in settings where samples have already been drawn from the posterior distribution of a Bayesian model.
+
+<<utility>>=
+utility_tbl <- stateval_tbl(
+  data.table(
+    state_id = rep(c(1, 2, 3), each = rng_def$n),
+    sample = rep(1:rng_def$n, nrow(hesim_dat$states)),
+    value = c(as.matrix(params_rng$u))
+  ),
+  dist = "custom",
+  hesim_data = hesim_dat
+)
+head(utility_tbl)
+@
+
+\subsubsection{Simulation}
+The simulation proceeds the same way as in the prior examples. We first create the transition, cost, and utility models, here specifying that model cycles are 6 months long since the model is in discrete time.  
+
+<<transmod>>=
+transmod <- CohortDtstmTrans$new(params = tprobs, cycle_length = 1/2)
+@
+
+<<stvalmods>>=
+# Utility
+utilitymod <- create_StateVals(utility_tbl)
+
+# Costs
+txcostmod <- create_StateVals(txcost_tbl, n = rng_def$n)
+medcostmod <- create_StateVals(medcost_tbl, n = rng_def$n)
+costmods <- list(Treatment = txcostmod,
+                 Medical = medcostmod)
+@
+
+<<econmod>>=
+econmod <- CohortDtstm$new(trans_model = transmod,
+                           utility_model = utilitymod,
+                           cost_models = costmods)
+@
+
+State probabilities are simulated for 45 years, or 90 model cycles.
+
+<<sim_stateprobs>>=
+econmod$sim_stateprobs(n_cycles = 45 * 2)
+@
+
+Costs and QALYs are again simulated with 3 percent discount rates. 
+
+<<sim_costs_qalys>>=
+econmod$sim_costs(dr = .03)
+econmod$sim_qalys(dr = .03)
+@
+
+Costs and QALYs are first summarized by subgroup.
+
+<<icer_grp>>=
+ce_sim_grp <- econmod$summarize(by_grp = TRUE)
+cea_pw_out <- cea_pw(ce_sim_grp, comparator = 1, dr_costs = .03, dr_qalys = .03)
+icer_tbl(cea_pw_out, output = "data.table")
+@
+
+They can also be aggregated across groups using the weighted specified in the \code{hesim_data} object above. 
+
+<<icer>>=
+ce_sim <- econmod$summarize()
+cea_pw_out <- cea_pw(ce_sim, comparator = 1, dr_costs = .03, dr_qalys = .03)
+icer_tbl(cea_pw_out, output = "data.table")
 @
 
 \subsection{Individual model}
-
-%% -- Models with patient level data -------------------------------------------
-\section{Economic modeling with patient level data} \label{sec:modeling-patient}
-
-\subsection{Partitioned survival analysis}
-
-\subsection{Multi-state model}
 
 %% -- Cost-effectiveness analysis ----------------------------------------------
 \section{Cost-effectiveness analysis} \label{sec:cea}
