@@ -19,10 +19,20 @@
 
 %% For Sweave-based articles about R packages:
 %% need no \usepackage{Sweave}
-\SweaveOpts{engine = R, eps = FALSE, keep.source = TRUE, eval = TRUE}
-<<preliminaries, echo=FALSE, results=hide>>=
+
+<<include=FALSE>>=
+library(knitr)
+knitr::render_sweave()
+opts_chunk$set(
+  engine="R", tidy = FALSE, eval = TRUE, cache = TRUE,
+  fig.height = 5, fig.width = 7
+)
+@
+
+<<preliminaries, echo=FALSE, results="hide">>=
 options(prompt = "R> ", continue = "+  ", width = 70, useFancyQuotes = FALSE)
-set.seed(101)
+ggplot2::theme_set(ggplot2::theme_bw())
+set.seed(102)
 @
 
 
@@ -307,331 +317,561 @@ Economic model & Disease progression  & QALYs & Costs \\
 \end{tabular*}
 \end{table}
 
-%% -- Models with patient level data -------------------------------------------
-\section{Economic modeling with patient level data} \label{sec:modeling-patient}
-
-\subsection{Partitioned survival analysis}
-
-\subsection{Multi-state model}
-
-%% -- Models with aggregate level data -----------------------------------------
-\section{Economic modeling with aggregate level data} \label{sec:modeling-aggregate}
-Health economic models are commonly developed using aggregate level data taken from multiple sources. In these cases it is helpful to be able input model parameters rather than fitting a statistical model. We illustrate with the 4 state disease progression model displayed in Figure~\ref{fig:four-state-model}. Patients advance between successively more severe disease states. It is possible to move from State 2 back to State 1 but recovery is not possible from State 3. Death can occur from any state. 
+%% -- Illustrative example -----------------------------------------------------
+\section{Illustrative example} \label{sec:illustrative-example}
 
 \begin{figure}[h]
 \centering
 \begin{tikzpicture}
 % States
-\node[draw, minimum height=1cm, minimum width=2cm, font=\footnotesize] (S1) {\textbf{State 1}};
-\node[draw, minimum height=1cm, minimum width=2cm, font=\footnotesize] (S2) [right = of S1] {\textbf{State 2}};
-\node[draw, minimum height=1cm, minimum width=2cm, font=\footnotesize] (S3) [right = of S2] {\textbf{State 3}};
-\node[draw, minimum height=1cm, minimum width=2cm, font=\footnotesize] (D) [below = of S2] {\textbf{Death}};
+\node[draw, minimum height=1cm, minimum width=2.5cm, font=\footnotesize] (S) {\textbf{Stable}};
+\node[draw, minimum height=1cm, minimum width=2.5cm, font=\footnotesize] (P) [right = of S] {\textbf{Progression}};
+\node[draw, minimum height=1cm, minimum width=2.5cm, font=\footnotesize] (D) [right = of P] {\textbf{Death}};
 
 % Arrows
-\draw [thick, <->] (S1.east) -- (S2.west);
-\draw [thick, ->] (S2.east) -- (S3.west);
-\draw [thick, ->] (S1.south) -- (D.west);
-\draw [thick, ->] (S2.south) -- (D.north);
-\draw [thick, ->] (S3.south) -- (D.east);
+\draw [thick, ->] (S.east) -- (P.west);
+\draw [thick, ->] (P.east) -- (D.west);
+\draw [thick, ->] (S.north) to [bend left = 20] (D.north);
 
 \end{tikzpicture}
-\caption{Four state disease progression model}\label{fig:four-state-model}
+\caption{Three state model of disease progression in oncology}\label{fig:three-state-model}
 \end{figure}
 
-The four health states and five possible transitions are characterized below.
-
-<<q_coef, echo = FALSE>>=
-library("data.table")
-states <- data.table(
-  state_id = c(1, 2, 3, 4),
-  state_name = c(paste0("State ", 1:3), "Death")
-)
-
+<<tmat>>=
 tmat <- rbind(
-  c(NA, 1, NA, 2),
-  c(3, NA, 4, NA),
-  c(NA, NA, NA, 5),
-  c(NA, NA, NA, NA)
+  c(NA, 1, 2),
+  c(NA, NA, 3),
+  c(NA, NA, NA)
 )
-colnames(tmat) <- rownames(tmat) <- states$state_name
-n_trans <- max(tmat)
+colnames(tmat) <- rownames(tmat) <- c("Stable", "Progression", "Dead")
 print(tmat)
 @
 
-There are 3 treatment strategies: standard of care (SOC) and two new interventions (New 1 and New 2). For illustration, we will consider a target population approximated by two representative patients of age 60 and 70. The 60-year old patient represents $1/3$ of all patients with the disease while the 70-year old patient represents $2/3$. The \code{hesim_data} class is again used to store this data as well as the number of non-death health states.  
-
 <<hesim_data>>=
 library("hesim")
-strategies <- data.table(
+library("data.table")
+n_patients <- 1000
+patients <- data.table(
+  patient_id = 1:n_patients,
+  age = rnorm(n_patients, mean = 45, sd = 7),
+  female = rbinom(n_patients, size = 1, prob = .51)
+)
+
+states <- data.table(
+  state_id = c(1, 2),
+  state_name = c("Stable", "Progression") # Non-death health states
+)
+n_states <- nrow(states)
+
+strategies <- data.frame(
   strategy_id = 1:3,
   strategy_name = c("SOC", "New 1", "New 2"),
   soc = c(1, 0, 0),
   new1 = c(0, 1, 0),
   new2 = c(0, 0, 1)
 )
-
-patients <- data.table(
-  patient_id = 1:2,
-  grp_id = 1:2,
-  age = c(60, 70),
-  patient_wt = c(1/3, 2/3)
-)
+n_strategies <- nrow(strategies)
 
 hesim_dat <- hesim_data(
   strategies = strategies,
   patients = patients,
-  states = states[state_name != "Death"]
+  states = states
 )
 print(hesim_dat)
 @
 
+%% -- Individual continuous time state transition model ------------------------
+\subsection{Individual continuous time state transition model}
 
-\subsection{Cohort model}
 \subsubsection{Parameterization}
-The core of a cohort DTSTM is the disease model which is determined by the transition matrices $P_t$. In this example, model parameters related to the transition probabilities for SOC are obtained from a hypothetical analysis of a historical cohort. If data is collected at unevenly spaced intervals, then transitions can be described with transition intensity matrices, $Q_t$, by fitting a continuous time multi-state model designed for panel data (e.g., with the \proglang{R} package \pkg{msm}) \citep{jackson2011multi}. We assume that regression coefficients and a covariance matrix are available from such an analysis and that a piecewise exponential model was fit so that intensities change after year 2. 
 
-<<q_coef, echo = FALSE>>=
-trans <- c("1->2", "1->4", "2->1", "2->3", "3->4")
-trans_short <- c("12", "14", "21", "23", "34")
-var_short <- c("int", "time", "age") 
-var_long <- c("intercept", "time[2,Inf)", "age") 
-q_coef_int <- log(c(.9, .2, .5, 1.1, 1.5))
-q_coef_time <- rep(log(1.2), 5)
-q_coef_age <- rep(log(1.003), 5)
-q_coef_soc <- data.table(
-  trans = rep(trans, 3),
-  var = rep(var_long, each = 5),
-  name = paste0(rep(var_short, each = 5), "_", rep(trans_short, 3)),
-  loghr = c(q_coef_int, q_coef_time, q_coef_age)
-)
+<<ictstm_data>>=
+onc3[patient_id %in% c(1, 2)]
 @
 
-<<q_coef_soc_print>>=
-q_coef_soc
-@
-
-<<q_vcov_soc, echo = FALSE>>=
-n_vars <- nrow(q_coef_soc)
-A <- matrix(runif(n_vars^2) * 2 - 1, ncol = 15)/60
-q_vcov_soc <- t(A) %*% A
-@
-
-<<q_vcov_soc_print>>=
-q_vcov_soc[1:4, 1:4]
-@
-
-If many studies are available, then relative treatment effects can be estimated by means of a network meta-analysis (NMA). We assume that a NMA was performed to estimate the relative risk of transitions from State 1 to both State 2 and Death. The SOC was the reference arm. Estimation is performed in terms of the log relative risk since it is approximately normally distributed. 
-
-The utility associated with each state is assumed to follow a beta distribution, which is bounded between 0 and 1. The beta distribution is defined in terms of 2 shape parameters, but can be derived from the mean and standard error using the method of moments. Point estimates for utility in State 1, State 2, and State 3 are 0.9, 0.75, and 0.5, respectively. Standard errors in the same three states are 0.02, 0.03, and 0.05. Utility (and costs) are always assumed to be 0 in the death state.
-
-We assume that two categories of costs are measured: treatment and medical. The former are the costs of the three treatment strategies and are assumed fixed. The SOC is the cheapest option at \$2,000 per annum while New 1 and New 2 cost \$10,000 and \$12,000 per year, respectively. 
-
-While there is no uniform way to define medical costs, they often consist of costs accrued from hospitalizations and inpatient visits. They are assumed to follow a gamma distribution given that they are usually heavily right skewed. Like the beta distribution, the parameters of the gamma distribution are derived from the mean and standard error using the method of moments. Mean medical costs are \$2,000, \$4,000, and \$15,000 in State 1, State 2, and State 3, respectively. We assume the variance is unavailable and set the standard error in each state equal to the mean.  
-
-<<params>>=
-params <- list(
-  q_coef_soc = q_coef_soc,
-  q_vcov_soc = q_vcov_soc,
-  lrr_12_est = c(soc = log(1), new1 = log(.80), new2 = log(.71)),
-  lrr_12_se = c(soc = 0, new1 = .03, new2 = .04),
-  lrr_14_est = c(soc = log(1), new1 = log(.90), new2 = log(.85)),
-  lrr_14_se = c(soc = 0, new1 = .02, new2 = .03),
-  u_mean = c(s1 = .9, s2 = .75, s3 = .05),
-  u_se = c(s1 = .02, s2 = .03, s3 = .05),
-  c_medical = c(s1 = 2000, s2 = 4000, s3 = 15000),
-  c_tx = c(soc = 2000, new1 = 10000, new2 = 12000)
-)
-@
-
-To perform a PSA, it is necessary to randomly draw the parameters from suitable probability distributions. These distributions can be defined using \code{define_rng()}. While any random number generation function can be used, a number of commonly used distributions are specifically designed for use within a \code{define_rng()} block (see \code{?rng_distributions}). The built in distributions do not require specification of the number of PSA iterations (since it is defined within the block) and automatically perform certain operations (e.g., sampling from a gamma distribution from means and standard errors by usin methods of moments to derive the underlying shape and scale parameters). We include utility for illustrative purposes but omit the cost parameters since they can be sampled more directly with \code{stateva_tbl()}.
-
-<<define_rng>>=
-rng_def <- define_rng({
-  list( # Parameters to return
-    q_coef_soc = multi_normal_rng(q_coef_soc$loghr, q_vcov_soc,
-                                  names = q_coef_soc$name),
-    rr_12 = lognormal_rng(lrr_12_est, lrr_12_se),
-    rr_14 = lognormal_rng(lrr_14_est, lrr_14_se),
-    u = beta_rng(mean = u_mean, sd = u_se)
-  )
-}, n = 1000)
-@
-
-The random number generation expressions can are evaluated with \code{eval_rng()}.
-
-<<eval_rng>>=
-params_rng <- eval_rng(rng_def, params = params)
-@
-
-The transition intensity matrices and relative risks can be combined to derive the relevant transition probability matrices, stored as a \code{tparams_transprobs} object. A \code{tparams_transprobs} is simply a 3-dimensional array of transition probability matrices with a unique predicted matrix for each PSA sample, treatment strategy, representative patient, and (optionally) time interval. As in the prior example, the underlying input data can be constructed with \code{expand}.
-
-<<transmod_data>>=
-transmod_data <- expand(hesim_dat, by = c("strategies", "patients"),
-                        times = 2)
-head(transmod_data)
-@
-
-A complete dataset of ID variables that also incorporate the PSA iterations is constructed with \code{tpmatrix_id()}. The objective is to construct a transition probability for each row in this dataset. The user has complete flexibility to do this.
-
-<<tpmat_id>>=
-tpmat_id <- tpmatrix_id(transmod_data, rng_def$n)
-head(tpmat_id)
-@
-
-In this example we do this by first using the coefficients and input data to to predict transition intensity matrices for SOC (by age group and time interval). This is done by separately predicting intensities for all feasible transitions. There are $n=4$ observations for SOC and $B=1000$ random draws of the coefficients for the PSA. A transition from state $r$ to state $s$ is modeled as $log(q_{rs}) = X\beta^T$ where $X$ is an $n \times 3$ design matrix and $\beta$ is a $B \times 3$ sample of the coefficients. The resulting $n \times B$ matrix can be conveniently flattened into a vector of length $nB$ with the \code{c()} function so that predicted values are stacked by parameter sample as in \code{tpmatrix_id()}. 
-
-<<Q_soc>>=
-predict_q_soc <- function(data, beta){
-  data_soc <- data[strategy_name == "SOC"]
-  x <- model.matrix(~factor(time_start) + age, data = data_soc)
-  n_trans <- 5
-  qmat_soc <- matrix(NA, nrow = nrow(beta) * nrow(x), ncol = n_trans)
-  colnames(qmat_soc) <- c("q_12", "q_14", "q_21", "q_23", "q34")
-  for (i in 1:n_trans) {
-     beta_i <- as.matrix(beta)[, seq(i, ncol(beta), n_trans)]
-     qmat_soc[, i] <- exp(c(x %*% t(beta_i)))
-  }
-  return(qmat_soc)
+<<ictstm_fits>>=
+library("flexsurv")
+n_trans <- max(tmat, na.rm = TRUE) 
+wei_fits <- vector(length = n_trans, mode = "list")
+f <- as.formula(Surv(time, status) ~ factor(strategy_name) + female + age)
+for (i in 1:length(wei_fits)){
+  if (i == 3) f <- update.formula(f, .~.-factor(strategy_name)) 
+  wei_fits[[i]] <- flexsurvreg(f, data = onc3, 
+                               subset = (transition_id == i),
+                               dist = "weibull")
 }
-q_soc <- predict_q_soc(transmod_data, params_rng$q_coef_soc)
-head(q_soc)
+wei_fits <- flexsurvreg_list(wei_fits)
 @
 
-The predicted transition intensities are, in turn, use to form the complete transition intensity matrix. Specifically, \code{qmatrix()} forms an array of transition intensity matrices where each row sums to $0$ so that $q_{rr} = \sum_{s \neq r} -q_{rs}$.
-
-<<Q_soc>>=
-qmat_soc <- qmatrix(q_soc, tmat)
-qmat_soc[,, 1]
-@
-
-Transition probability matrices are constructed from the transition intensity matrices using the matrix exponential \citep{jackson2011multi}. In continuous time, $P(t) = \exp(tQ)$ so a transition probability matrix with model cycles of length $t$ years is given by $\exp(Q_t)$. In this example we will assume model cycles are 1/2 of a year. 
-
-<<P_soc>>=
-pmat_soc <- expmat(qmat_soc, t = 1/2)
-pmat_soc[,, 1]
-@
-
-Transition probability matrices can be derived for treatment strategies New 1 and New 2 using the relative risks. Relative risks are predicted for each row in the \code{tmat_id} dataset above.
-
-<<rr>>=
-x_rr <- as.matrix(transmod_data[, .(soc, new1, new2)])
-rr_12 <- c(x_rr %*% t(params_rng$rr_12))
-rr_14 <- c(x_rr %*% t(params_rng$rr_14))
-rr <- cbind(rr_12, rr_14)
-@
-
-Given reference transition probability matrices (i.e., those for SOC), we can apply the relative risks for the other treatment strategies using the \code{apply_rr()} function. An array of transition probability matrices is returned with one matrix for each row in \code{rr}.
-
-<<apply_rr>>=
-pmat <- apply_rr(pmat_soc, rr = rr,
-                 index = list(c(1, 2), c(1, 4)))
-@
-
-Finally, the array of transition probability matrices is combined with the relevant ID variables indexing each array slice to create the \code{tparams_transprobs} object. 
-
-<<apply_rr>>=
-tprobs <- tparams_transprobs(pmat, tpmat_id)
-@
-
-The utility and cost parameters are much more straightforward to store. As in the previous example we consider two cost categories and store parameter values in a \code{stateval_tbl}.
-
-<<tx_costs>>=
-txcost_tbl <- stateval_tbl(
-  data.table(
-    strategy_id = 1:3,
-    est = c(soc = 2000, new1 = 10000, new2 = 12000)
+<<ictstm_utility>>=
+utility_tbl <- stateval_tbl(
+  data.table(state_id = states$state_id,
+             mean = c(.8, .6),
+             se = c(0.02, .05)
   ),
+  dist = "beta",
+  hesim_data = hesim_dat)
+print(utility_tbl)
+@
+
+<<ictstm_medcosts>>=
+medcost_tbl <- stateval_tbl(
+  data.table(state_id = states$state_id,
+             mean = c(2000, 9500),
+             se = c(2000, 9500)
+  ),
+  dist = "gamma",
+  hesim_data = hesim_dat)
+print(medcost_tbl)
+@
+
+<<ictstm_drugcost_setup, echo=FALSE, results="hide">>=
+n_times <- 2
+n_i <- n_states * n_times
+drugcost_dt <-  data.table(
+    strategy_id = rep(strategies$strategy_id, each = n_i),
+    state_id = rep(rep(states$state_id, each = n_times), n_strategies),
+    time_start = rep(c(0, 3/12), n_states * n_strategies),
+    est = c(rep(2000, n_i -1), 1500, 
+            rep(12000, n_i -1), 1000,
+            rep(15000, n_i - 1), 1200
+            ) 
+)
+@
+
+<<ictstm_drugcost>>=
+drugcost_tbl <- stateval_tbl(
+  drugcost_dt,
   dist = "fixed",
   hesim_data = hesim_dat
 )
-head(txcost_tbl)
-@
-
-<<tx_costs>>=
-medcost_tbl <- stateval_tbl(
-  data.table(
-    state_id = 1:3,
-    mean = c(s1 = 2000, s2 = 4000, s3 = 15000),
-    se = c(s1 = 2000, s2 = 4000, s3 = 15000)
-  ),
-  dist = "gamma",
-  hesim_data = hesim_dat
-)
-head(medcost_tbl)
-@
-
-Although we could do the same for utility, we illustrate an alternative approach in which the distribution of utility values has been previously drawn from a suitable probability distribution. While not necessary in this case, this feature might be useful in settings where samples have already been drawn from the posterior distribution of a Bayesian model.
-
-<<utility>>=
-utility_tbl <- stateval_tbl(
-  data.table(
-    state_id = rep(c(1, 2, 3), each = rng_def$n),
-    sample = rep(1:rng_def$n, nrow(hesim_dat$states)),
-    value = c(as.matrix(params_rng$u))
-  ),
-  dist = "custom",
-  hesim_data = hesim_dat
-)
-head(utility_tbl)
 @
 
 \subsubsection{Simulation}
-The simulation proceeds the same way as in the prior examples. We first create the transition, cost, and utility models, here specifying that model cycles are 6 months long since the model is in discrete time.  
-
-<<transmod>>=
-transmod <- CohortDtstmTrans$new(params = tprobs, cycle_length = 1/2)
+<<ictstm_n_samples>>=
+n_samples <- 100
 @
 
-<<stvalmods>>=
+<<ictstm_transmod_data>>=
+transmod_data <- expand(hesim_dat,
+                        by = c("strategies", "patients"))
+head(transmod_data)
+@
+
+<<ictstm_transmod>>=
+transmod <- create_IndivCtstmTrans(wei_fits, transmod_data,
+                                   trans_mat = tmat, n = n_samples,
+                                   clock = "reset",
+                                   start_age = patients$age)
+@
+  
+<<ictstm_stvalmods>>=
 # Utility
-utilitymod <- create_StateVals(utility_tbl)
+utilitymod <- create_StateVals(utility_tbl, n = n_samples)
 
 # Costs
-txcostmod <- create_StateVals(txcost_tbl, n = rng_def$n)
-medcostmod <- create_StateVals(medcost_tbl, n = rng_def$n)
-costmods <- list(Treatment = txcostmod,
+drugcostmod <- create_StateVals(drugcost_tbl, n = n_samples,
+                                time_reset = TRUE)
+medcostmod <- create_StateVals(medcost_tbl, n = n_samples)
+costmods <- list(Drug = drugcostmod,
                  Medical = medcostmod)
 @
 
-<<econmod>>=
-econmod <- CohortDtstm$new(trans_model = transmod,
-                           utility_model = utilitymod,
-                           cost_models = costmods)
+<<ictstm_econmod>>=
+ictstm <- IndivCtstm$new(trans_model = transmod,
+                         utility_model = utilitymod,
+                         cost_models = costmods)
 @
 
-State probabilities are simulated for 45 years, or 90 model cycles.
-
-<<sim_stateprobs>>=
-econmod$sim_stateprobs(n_cycles = 45 * 2)
+<<ictstm_sim_disease>>=
+ictstm$sim_disease(max_age = 100)
+head(ictstm$disprog_)
 @
 
-Costs and QALYs are again simulated with 3 percent discount rates. 
-
-<<sim_costs_qalys>>=
-econmod$sim_costs(dr = .03)
-econmod$sim_qalys(dr = .03)
+<<ictstm_sim_stateprobs>>=
+ictstm$sim_stateprobs(t = seq(0, 30 , 1/12))
+head(ictstm$stateprobs_)
 @
 
-Costs and QALYs are first summarized by subgroup.
+<<ictstm_summarize_stateprobs, echo=FALSE, results="hide">>=
+add_state_name <- function(x){
+  x[, state_name := factor(state_id,
+                           levels = 1:nrow(tmat),
+                           labels = colnames(tmat))]
+}
 
-<<icer_grp>>=
-ce_sim_grp <- econmod$summarize(by_grp = TRUE)
-cea_pw_out <- cea_pw(ce_sim_grp, comparator = 1, dr_costs = .03, dr_qalys = .03)
-icer_tbl(cea_pw_out, output = "data.table")
+add_strategy_name <- function(x) {
+  x[, strategy_name := factor(strategy_id, 
+                              labels = c("SOC", "New 1", "New 2"))]
+}
+
+summarize_stprobs <- function(stateprobs){
+  x <- stateprobs[, .(prob_mean = mean(prob)),
+                  by = c("strategy_id", "state_id", "t")]
+  add_state_name(x)
+  add_strategy_name(x)
+  return(x[, ])
+}
 @
 
-They can also be aggregated across groups using the weighted specified in the \code{hesim_data} object above. 
-
-<<icer>>=
-ce_sim <- econmod$summarize()
-cea_pw_out <- cea_pw(ce_sim, comparator = 1, dr_costs = .03, dr_qalys = .03)
-icer_tbl(cea_pw_out, output = "data.table")
+<<ictstm_plot_stateprobs, echo = FALSE, include = FALSE>>=
+library("ggplot2")
+stprobs <- summarize_stprobs(ictstm$stateprobs_)
+ggplot(stprobs, 
+       aes(x = t, y = prob_mean, col = strategy_name)) +
+  geom_line() + facet_wrap(~state_name) +
+  xlab("Years") + ylab("Probability in health state") +
+  scale_color_discrete(name = "Strategy") +
+  theme(legend.position = "bottom") 
 @
 
-\subsection{Individual model}
+\begin{figure}[t!]
+\centering
+\includegraphics{figure/ictstm_plot_stateprobs-1.pdf}
+\caption{Mean simulated state probabilities from the probabilistic sensitivity analysis} \label{fig:ictstm-stprobs}
+\end{figure}
+
+<<ictstm_sim_qalys>>=
+ictstm$sim_qalys(dr = c(0,.03))
+head(ictstm$qalys_)
+@
+
+<<ictstm_sim_costs>>=
+ictstm$sim_costs(dr = .03)
+head(ictstm$costs_)
+@
+
+<<ictstm_icer>>=
+ce_sim_ictstm <- ictstm$summarize()
+cea_pw_ictstm <- cea_pw(ce_sim_ictstm, comparator = 1,
+                        dr_qalys = .03, dr_costs = .03,
+                        k = seq(0, 25000, 500))
+icer_tbl(cea_pw_ictstm, colnames = strategies$strategy_name,
+         k = 100000)
+@
+
+%% -- Partitioned survival model -----------------------------------------------
+\subsection{Partitioned survival model}
+<<psm_hesim_data>>=
+hesim_dat$patients <- data.table(
+  patient_id = 1:4,
+  patient_wt = rep(1/4, 4),
+  age = c(55, 65, 55, 65),
+  female = c(1, 1, 0, 0)
+)
+@
+
+\subsubsection{Parameterization}
+<<psm_data>>=
+surv_est_data <- as_pfs_os(onc3, patient_vars = c("patient_id", "female", "age", 
+                                                  "strategy_name"))
+surv_est_data[patient_id %in% c(1, 2)]
+@
+
+<<psm_fits>>=
+fit_pfs_wei <- flexsurv::flexsurvreg(
+  Surv(pfs_time, pfs_status) ~ strategy_name + female,
+  data = surv_est_data,
+  dist = "weibull")
+
+fit_os_wei <- flexsurvreg(
+  Surv(os_time, os_status) ~ strategy_name + female,
+  data = surv_est_data,
+  dist = "weibull")
+
+psmfit_wei <- flexsurvreg_list(fit_pfs_wei, fit_os_wei)
+@
+
+<<psm_stateval_tbl>>=
+attr(utility_tbl, "patients") <- hesim_dat$patients
+attr(medcost_tbl, "patients") <- hesim_dat$patients
+@
+
+<<psm_drugcost>>=
+drugcost_tbl <- stateval_tbl(
+  data.table(strategy_id = strategies$strategy_id,
+             est = c(2000, 12000, 15000)),
+  dist = "fixed",
+  hesim_data = hesim_dat)
+print(drugcost_tbl)
+@
+
+\subsubsection{Simulation}
+
+<<psm_survmods_data>>=
+survmods_data <- expand(hesim_dat, by = c("strategies", "patients"))
+head(survmods_data)
+@
+
+<<psm_survmods>>=
+survmods <- create_PsmCurves(psmfit_wei,
+                             input_data = survmods_data,
+                             n = n_samples,
+                             bootstrap = FALSE, est_data = surv_est_data)
+@
+
+<<psm_stvalmods>>=
+utilitymod <- create_StateVals(utility_tbl, n = n_samples)
+drugcostmod <- create_StateVals(drugcost_tbl, n = n_samples)
+medcostmod <- create_StateVals(medcost_tbl, n = n_samples)
+costmods <- list(Drug = drugcostmod, Medical = medcostmod)
+@
+
+<<psm_econmod>>=
+psm <- Psm$new(survival_models = survmods,
+               utility_model = utilitymod,
+               cost_models = costmods)
+@
+
+<<psm_sim_survival>>=
+times <- seq(0, 20, by = .1)
+psm$sim_survival(t = times)
+head(psm$survival_)
+@
+
+<<psm_plot_survival, echo = FALSE, include = FALSE>>=
+# Survival curve plotting data
+surv_means <- psm$survival_[, lapply(.SD, weighted.mean, w = patient_wt),
+                                by = c("strategy_id", "curve", "t"),
+                               .SDcols = "survival"]
+surv_mean_min <- surv_means[curve != 2][, curve := curve + 1]
+setnames(surv_mean_min, "survival", "survival_min")
+surv_means <- merge(surv_means, surv_mean_min,
+                    by = c("strategy_id", "curve", "t"),
+                    all.x = TRUE)
+surv_means[, survival_min := ifelse(curve == 1, 0, survival_min)]
+surv_means[, curve := factor(curve, labels = c("PFS", "OS"))]
+surv_means[, strategy_name := factor(strategy_id, labels = c("SOC", "New 1", "New 2"))]
+
+# Plot
+ggplot(surv_means, aes(x = t, y = survival, fill = curve)) +
+  geom_line(aes(col = curve)) +
+  facet_wrap(~strategy_name) +
+  geom_ribbon(aes(ymin = survival_min, ymax = survival), alpha = .5) +
+  xlab("Years") + ylab("Proportion surviving") +
+  scale_color_discrete(name = "Survival curve") +
+  guides(fill = FALSE) +
+  theme_bw() +
+  theme(legend.position = "bottom") 
+@
+
+\begin{figure}[t!]
+\centering
+\includegraphics{figure/psm_plot_survival-1.pdf}
+\caption{Mean progression free survival and overall survival, weighted by weight of each patient in the target population. Solid and dotted lines represent means and 95\% confidence intervals from the probabilistic sensitivity analysis, respectively. 
+weighted} \label{fig:psm-survival}
+\end{figure}
+
+<<psm_sim_stateprobs>>=
+psm$sim_stateprobs()
+psm$stateprobs_[sample == 1 & patient_id == 1 & state_id == 2 & t == 12]
+@
+
+<<psm_costs_qalys>>=
+psm$sim_costs(dr = .03)
+psm$sim_qalys(dr = .03)
+@
+
+<<psm_icer>>=
+ce_sim_psm <- psm$summarize()
+cea_pw_psm <- cea_pw(ce_sim_psm, comparator = 1,
+                     dr_qalys = .03, dr_costs = .03,
+                     k = seq(0, 25000, 500))
+icer_tbl(cea_pw_psm, colnames = strategies$strategy_name,
+         k = 100000)
+@
+
+\subsection{Cohort disctete time state transition model}
+
+\subsubsection{Parameterization}
+
+<<cdtstm_fit_soc, warning = FALSE>>=
+library("msm")
+qinit <- matrix(0, nrow = 3, ncol = 3)
+qinit[1, 2] <-  0.28
+qinit[1, 3] <-  0.013
+qinit[2, 3] <-  0.10
+msm_fit <- msm(state_id ~ time, subject = patient_id, 
+               data = onc3p[strategy_name == "SOC"],
+               exacttimes = FALSE,
+               covariates = ~ age + female,
+               qmatrix = qinit, gen.inits = FALSE)
+@
+
+<<msm_exact, eval = FALSE>>=
+# msm with exact transition times
+tmat2 <- tmat; tmat2[is.na(tmat2)] <- 0
+msm_efit <- msm(state_id ~ time, subject = patient_id, 
+                data = onc3p[strategy_name == "SOC"],
+                qmatrix = tmat2, exacttimes = TRUE)
+
+# flexsurv with exponential model
+library("flexsurv")
+exp_fits <- vector(length = n_trans, mode = "list")
+for (i in 1:length(wei_fits)){
+  exp_fits[[i]] <- flexsurvreg(Surv(time, status) ~ 1, data = onc3, 
+                               subset = (transition_id == i & 
+                                         strategy_name == "SOC"),
+                               dist = "exponential")
+}
+
+# Compare
+msm_efit
+exp_fits[[1]]$res
+exp_fits[[2]]$res
+exp_fits[[3]]$res
+@
+
+<<cdtstm_params>>=
+params2 <- list(
+  lrr_12_est = c(soc = log(1), new1 = log(.80), new2 = log(.71)),
+  lrr_12_se = c(soc = 0, new1 = .03, new2 = .04),
+  lrr_13_est = c(soc = log(1), new1 = log(.90), new2 = log(.85)),
+  lrr_13_se = c(soc = 0, new1 = .02, new2 = .03),
+  u_mean = c(s1 = .9, s2 = .75, s3 = .05),
+  u_se = c(s1 = .02, s2 = .03, s3 = .05)
+)  
+
+params2_def <- define_rng({
+  list(
+    rr_12 = lognormal_rng(lrr_12_est, lrr_12_se),
+    rr_13 = lognormal_rng(lrr_13_est, lrr_13_se),
+    u = beta_rng(mean = u_mean, sd = u_se)
+  )}, n = n_samples)
+
+params2_rng <- eval_rng(params2_def, params2)
+@
+
+<<qmat_soc>>=
+transmod_data <- survmods_data
+qmat_soc <- qmatrix(msm_fit, newdata = transmod_data[strategy_name == "SOC"],
+                    uncertainty = "normal", n = n_samples)
+qmat_soc[,, 1]
+@
+
+<<pmat_soc>>=
+cycle_len <- 1/4
+pmat_soc <- expmat(qmat_soc, t = cycle_len)
+pmat_soc[,, 1]
+@
+
+<<transprobs_id>>=
+tpmat_id <- tpmatrix_id(transmod_data, n_samples)
+head(tpmat_id)
+@
+
+<<xbeta>>=
+xbeta <- function(x, beta) c(x %*% t(beta))
+@
+
+<<rr>>=
+x_rr <- as.matrix(transmod_data[, .(soc, new1, new2)])
+rr <- cbind(xbeta(x_rr, params2_rng$rr_12),
+            xbeta(x_rr, params2_rng$rr_13))
+@
+
+<<apply_rr>>=
+pmat <- apply_rr(pmat_soc, rr = rr,
+                 index = list(c(1, 2), c(1, 3)))
+@
+
+<<tparams_transprobs>>=
+tprobs <- tparams_transprobs(pmat, tpmat_id)
+@
+
+\subsubsection{Simulation}
+<<dtstm_transmod>>=
+transmod <- CohortDtstmTrans$new(params = tprobs, cycle_length = cycle_len)
+@
+
+<<dtstm_econmod>>=
+cdtstm <- CohortDtstm$new(trans_model = transmod,
+                         utility_model = psm$utility_model,
+                         cost_models = psm$cost_models)
+@
+
+<<cdtstm_sim_stateprobs>>=
+cdtstm$sim_stateprobs(n_cycles = 30/cycle_len)
+@
+
+<<cdtstm_plot_stateprobs, echo = FALSE, include = FALSE>>=
+stprobs_tot <- cdtstm$stateprobs_[, lapply(.SD, weighted.mean, w = patient_wt),
+                                   by = c("sample", "strategy_id", "state_id", "t"),
+                                   .SDcols = "prob"]
+stprobs_summary <- summarize_stprobs(stprobs_tot)
+ggplot(stprobs_summary, aes(x = t, y = prob_mean)) +
+  geom_line(aes(col = strategy_name)) +
+  # geom_ribbon(aes(x = t, ymin = prob_lower, ymax = prob_upper,
+  #                 fill = strategy_name), alpha = .3) +
+  facet_wrap(~state_name) +
+  xlab("Year") + ylab("Probability") +
+  scale_fill_discrete("Strategy") + scale_color_discrete("Strategy")
+@
+
+<<cdtstm_sim_qalys_costs>>=
+cdtstm$sim_qalys(dr = .03)
+cdtstm$sim_costs(dr = .03)
+@
+
+<<cdtstm_icer>>=
+ce_sim_cdtstm <- cdtstm$summarize()
+cea_pw_cdtstm <- cea_pw(ce_sim_cdtstm, comparator = 1, 
+                        dr_costs = .03, dr_qalys = .03)
+icer_tbl(cea_pw_cdtstm, output = "data.table")
+@
 
 %% -- Cost-effectiveness analysis ----------------------------------------------
 \section{Cost-effectiveness analysis} \label{sec:cea}
+<<cea>>=
+wtp <- seq(0, 250000, 500) # Willingness to pay per QALY
+cea_ictstm <- cea(ce_sim_ictstm, dr_costs = .03, dr_qalys = .03, k = wtp)
+@
+
+<<ce_plane>>=
+library("scales")
+strategy_factor <- function (x) {
+  factor(x, levels = 1:3, labels = c("SOC", "New 1", "New 2"))
+}
+
+xlim <- ceiling(max(cea_pw_ictstm$delta[, ie]) * 1.2)
+ylim <- max(cea_pw_ictstm$delta[, ic]) * 1.2
+ggplot(cea_pw_ictstm$delta,
+       aes(x = ie, y = ic, col = strategy_factor(strategy_id))) +
+  geom_jitter(size = .5)  +
+  xlab("Incremental QALYs") +
+  ylab("Incremental cost") +
+  scale_y_continuous(limits = c(-ylim, ylim),
+                     labels = scales::dollar) +
+  scale_x_continuous(limits = c(-xlim, xlim), breaks = seq(-2, 2, .5)) +
+  theme(legend.position = "bottom") +
+  scale_colour_discrete(name = "Strategy") +
+  geom_abline(slope = 100000, linetype = "dashed") +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0)
+@
+
+
+<<ceac>>=
+ggplot(cea_ictstm$mce,
+       aes(x = k, y = prob, col = strategy_factor(strategy_id))) +
+  geom_line() +
+  xlab("Willingness to pay") +
+  ylab("Probability most cost-effective") +
+  scale_x_continuous(breaks = seq(0, max(wtp), length.out = 6),
+                     label = scales::dollar) +
+  theme(legend.position = "bottom")
+@
+
+<<evpi>>=
+ggplot(cea_ictstm$evpi, aes(x = k, y = evpi)) +
+  geom_line()  +
+  xlab("Willingness to pay") +
+  ylab("Expected value of perfect information") +
+  scale_x_continuous(breaks = seq(0, max(wtp), length.out = 6),
+                     label = scales::dollar) +
+  scale_y_continuous(label = scales::dollar) +
+  theme(legend.position = "bottom")
+@
 
 %% -- Discussion ---------------------------------------------------------------
 \section{Discussion} \label{sec:discussion}
