@@ -110,7 +110,9 @@ Despite their computational demands and foundations in statistics, health econom
 
 \pkg{hesim} is an \proglang{R} package that advances the functionality and performance of the existing software. Multiple model types are supported including cohort discrete time state transition models (DTSTMs), N-state PSMs, and individual-level continuous time state transition models (CTSTMs), encompassing both Markov (time-homogeneous and time-inhomogeneous) and semi-Markov processes. To maximize flexibility and facilitate integration of the statistical methods and economic model, parameters can be estimated either by fitting a model in \proglang{R}, by inputting parameters obtained from external sources. So that individual-level simulation and PSA can be run quickly, \pkg{Rcpp} and \pkg{data.table} are heavily utilized. After simulating costs and quality-adjusted life-years (QALYs) from a PSA, decision analysis can be performed within a cost-effectiveness framework.
 
-The remainder of this article is organized as follows. Section~\ref{sec:model-taxonomy} describes the economic models supported by \pkg{hesim}. An overview of the coding framework is provided in Section~\ref{sec:framework}. An illustrative example using a three state model of disease progression in oncology is provided in Section~\ref{sec:illustrative-example}. Analyses are conducted for each of the three supported model types, illustrating approaches suitable for both patient level and summary level data. The cost-effectiveness framework is described in Section~\ref{sec:cea} along with worked examples based on the output from the prior section. Section~\ref{sec:discussion} makes comparisons to other software and discusses possible extensions. Finally, Section~\ref{sec:conclusion} concludes.   
+The remainder of this article is organized as follows. Section~\ref{sec:model-taxonomy} describes the economic models supported by \pkg{hesim}. An overview of the coding framework is provided in Section~\ref{sec:framework}. An illustrative example using a three state model of disease progression in oncology is provided in Section~\ref{sec:illustrative-example}. Analyses are conducted for each of the three supported model types, illustrating approaches suitable for both patient level and aggregate level data. The cost-effectiveness framework is described in Section~\ref{sec:cea} along with worked examples based on the output from the prior section. Section~\ref{sec:discussion} makes comparisons to other software and discusses possible extensions. Finally, Section~\ref{sec:conclusion} concludes. 
+
+Analyses were performed using \pkg{hesim} version 0.5.0.
 
 %% -- Model taxonomy -----------------------------------------------------------
 \section{Model taxonomy} \label{sec:model-taxonomy}
@@ -398,7 +400,7 @@ onc3[patient_id %in% c(1, 2)]
 Multi-state models can be fit in one of two ways. First, a joint survival model with interaction terms for different transition can be estimated, which is useful if there are constraints in the parameters across
 transitions, such as coefficients that are assumed equal across transitions. Here, we will take a second approach that is computationally more efficient and fit a separate model for each transition. We illustrate with parametric Weibull models but multiple distributions should be compared in a real application \citep{williams2017cost}. The treatment effect is assumed to only influence transitions from stable disease since patients are assumed to switch to a 2L treatment after progression.
 
-<<ictstm_fits, warning = FALSE>>=
+<<ictstm_fits, warning = FALSE, message = FALSE>>=
 library("flexsurv")
 n_trans <- max(tmat, na.rm = TRUE) 
 wei_fits <- vector(length = n_trans, mode = "list")
@@ -594,9 +596,14 @@ icer_tbl(cea_pw_ictstm, colnames = strategies$strategy_name,
 
 %% -- Partitioned survival model -----------------------------------------------
 \subsection{Partitioned survival model}
+In the previous section multi-state models were fit to individual patient data. Partitioned survival analysis is an alternative approach that is frequently used for economic evaluations of therapies in oncology. Although there is increasing evidence that PSM are more biased than multi-state models \citep{woods2020partitioned}, PSMs are easier to parameterize with aggregate level data. Techniques for fitting multi-state models with aggregate data require more constraints and are less established \citep{price2011parameterization, pahuta2019technique, jansen2020multi}. PSMs, in contrast, consist of separate independent survival models that can be estimated with aggregate level data by reconstructing individual patient data from digitized survival curves \citep{guyot2012enhanced}. 
+
+Since a PSM is a cohort model, the \code{hesim_data} object must be modified accordingly. We now specify 4 representative patients that comprise the cohort, each given an equal weight. We consider separate subgroups (identified with \code{grp_id}) for males and females. 
+
 <<psm_hesim_data>>=
 hesim_dat$patients <- data.table(
   patient_id = 1:4,
+  grp_id = c(1, 1, 0, 0),
   patient_wt = rep(1/4, 4),
   age = c(55, 65, 55, 65),
   female = c(1, 1, 0, 0)
@@ -604,25 +611,60 @@ hesim_dat$patients <- data.table(
 @
 
 \subsubsection{Parameterization}
+A multi-state dataset can be converted into dataset with one row per patients and outcomes for PFS and OS using the function \code{as_pfs_os()}. 
+
 <<psm_data>>=
-surv_est_data <- as_pfs_os(onc3, patient_vars = c("patient_id", "female", "age", 
-                                                  "strategy_name"))
-surv_est_data[patient_id %in% c(1, 2)]
+onc_pfs_os <- as_pfs_os(onc3, patient_vars = c("patient_id", "female", "age", 
+                                               "strategy_name"))
+onc_pfs_os[patient_id %in% c(1, 2)]
 @
 
-<<psm_fits>>=
+Survival models must be fit for both PFS and OS. To imitate a realistic scenario, we assume that patient level data is only available for SOC and that relative treatment effects are estimated with aggregate data (e.g., using a NMA). As such, we start by fitting Weibull models for the SOC.
+
+<<psm_fits_soc>>=
+fit_pfs_soc_wei <- flexsurv::flexsurvreg(
+  Surv(pfs_time, pfs_status) ~ female,
+  data = onc_pfs_os, subset = (strategy_name == "SOC"),
+  dist = "weibull")
+
+fit_os_soc_wei <- flexsurvreg(
+  Surv(os_time, os_status) ~  female,
+  data = onc_pfs_os, subset = (strategy_name == "SOC"),
+  dist = "weibull")
+
+psmfit_soc_wei <- flexsurvreg_list(pfs = fit_pfs_soc_wei, os = fit_os_soc_wei)
+@
+
+The relative treatment effects are available in terms of regression coefficients for the scale parameter on the log scale. The matrices \code{coef_pfs_wei} and \code{coef_os_wei} contain samples of the treatment effects for the PSA. We display the first 6 rows of the PFS coefficients. 
+
+<<psm_fits, include = FALSE>>=
+# Create dummies
+onc_pfs_os[, new1 := ifelse(strategy_name == "New 1", 1, 0)]
+onc_pfs_os[, new2 := ifelse(strategy_name == "New 2", 1, 0)]
+
+# Fit models
 fit_pfs_wei <- flexsurv::flexsurvreg(
-  Surv(pfs_time, pfs_status) ~ strategy_name + female,
-  data = surv_est_data,
+  Surv(pfs_time, pfs_status) ~ female + new1 + new2,
+  data = onc_pfs_os,,
   dist = "weibull")
 
 fit_os_wei <- flexsurvreg(
-  Surv(os_time, os_status) ~ strategy_name + female,
-  data = surv_est_data,
+  Surv(os_time, os_status) ~ female + new1 + new2,
+  data = onc_pfs_os,
   dist = "weibull")
 
-psmfit_wei <- flexsurvreg_list(fit_pfs_wei, fit_os_wei)
+# Extract relative treatment effects
+params_pfs_wei <- create_params(fit_pfs_wei, n = n_samples)
+params_os_wei <- create_params(fit_os_wei, n = n_samples)
+coef_pfs_wei <- params_pfs_wei$coefs$scale[, c("new1", "new2")]
+coef_os_wei <- params_os_wei$coefs$scale[, c("new1", "new2")]
 @
+
+<<psm_coefs>>=
+head(coef_pfs_wei)
+@
+
+The parameters for utility and medical costs remain the same as in the previous section. We do, however, modify drug costs. Since we are no longer using an individual level model, costs cannot vary as a function of time in a health state. We now assume conservatively that drug costs remain at initial level when in the progression state.  
 
 <<psm_stateval_tbl>>=
 attr(utility_tbl, "patients") <- hesim_dat$patients
@@ -631,26 +673,46 @@ attr(medcost_tbl, "patients") <- hesim_dat$patients
 
 <<psm_drugcost>>=
 drugcost_tbl <- stateval_tbl(
-  data.table(strategy_id = strategies$strategy_id,
-             est = c(2000, 12000, 15000)),
+  drugcost_dt[time_start ==  0][, time_start := NULL],
   dist = "fixed",
   hesim_data = hesim_dat)
 print(drugcost_tbl)
 @
 
 \subsubsection{Simulation}
+As with with the multi-state model, input data for the survival models is constructed with the \code{expand()} function.
 
 <<psm_survmods_data>>=
 survmods_data <- expand(hesim_dat, by = c("strategies", "patients"))
 head(survmods_data)
 @
 
-<<psm_survmods>>=
-survmods <- create_PsmCurves(psmfit_wei,
-                             input_data = survmods_data,
-                             n = n_samples,
-                             bootstrap = FALSE, est_data = surv_est_data)
+Since we did not fit a survival regression model containing both the absolute and relative treatment effects, we must construct the survival parameter object manually. We obtain the parameters of the fitted Weibull regression models with the generic function \code{create_params()}, and then manually add the relative treatment effects to the coefficients for the scale parameters. (Note that if we had not fit a model for SOC, a survival parameter objects could have still been constructed with \code{params_surv()}.)
+
+<<psm_survmods_params>>=
+survmods_params <- create_params(psmfit_soc_wei, n = n_samples)
+survmods_params$pfs$coefs$scale <- cbind(survmods_params$pfs$coefs$scale,
+                                         coef_pfs_wei)
+survmods_params$os$coefs$scale <- cbind(survmods_params$os$coefs$scale,
+                                        coef_os_wei)
 @
+
+Survival curves for both PFS and OS are predicted using the \code{PsmCurves} class, which is setup using the input data and the parameters of the Weibull model. However, since we manually created the parameter object---meaning that the parameters were not generating using a formula interface---the input data must contain each term contained in the parameter object. We must consequently create an intercept column of ones.
+
+<<psm_survmods>>=
+# To remove with update of package
+colnames(survmods_params$pfs$coefs$shape)[1] <- "intercept"
+colnames(survmods_params$pfs$coefs$scale)[1] <- "intercept"
+colnames(survmods_params$os$coefs$shape)[1] <- "intercept"
+colnames(survmods_params$os$coefs$scale)[1] <- "intercept"
+
+# To keep
+survmods_data[, intercept := 1]
+survmods <- create_PsmCurves(survmods_params, 
+                             input_data = survmods_data)
+@
+
+We re-instantiate all of the utility and cost models. This is necessary because our patient population changed and we are now only making predictions for 4 representative patients (rather than 1,000 in the individual simulation). The \code{hesim_data} argument to \code{create_StateVals()} does this for us automatically. 
 
 <<psm_stvalmods>>=
 utilitymod <- create_StateVals(utility_tbl, n = n_samples)
@@ -659,11 +721,15 @@ medcostmod <- create_StateVals(medcost_tbl, n = n_samples)
 costmods <- list(Drug = drugcostmod, Medical = medcostmod)
 @
 
+Finally, the complete partitioned survial model is constructed using the survival, utility, and cost mdoels. 
+
 <<psm_econmod>>=
 psm <- Psm$new(survival_models = survmods,
                utility_model = utilitymod,
                cost_models = costmods)
 @
+
+We first simulate survival curves by month for 20 years. State probabilities are easily computed from these survival curves with the \code{sim_stateprobs()} method. The area under the PFS curve is the proportion of patients in stable disease while the area between the PFS and OS curves is the proportion of patient whose disease has progressed. 
 
 <<psm_sim_survival>>=
 times <- seq(0, 20, by = .1)
@@ -709,16 +775,17 @@ psm$sim_stateprobs()
 psm$stateprobs_[sample == 1 & patient_id == 1 & state_id == 2 & t == 12]
 @
 
+QALYs and costs are simulated in using the same \code{sim_qalys()} and \code{sim_costs()} methods as in the previous section, as is the calculation of the ICER. 
+
 <<psm_costs_qalys>>=
-psm$sim_costs(dr = .03)
 psm$sim_qalys(dr = .03)
+psm$sim_costs(dr = .03)
 @
 
 <<psm_icer>>=
 ce_sim_psm <- psm$summarize()
 cea_pw_psm <- cea_pw(ce_sim_psm, comparator = 1,
-                     dr_qalys = .03, dr_costs = .03,
-                     k = seq(0, 25000, 500))
+                     dr_qalys = .03, dr_costs = .03)
 icer_tbl(cea_pw_psm, colnames = strategies$strategy_name,
          k = 100000)
 @
@@ -740,7 +807,7 @@ msm_fit <- msm(state_id ~ time, subject = patient_id,
                qmatrix = qinit, gen.inits = FALSE)
 @
 
-<<msm_exact, eval = FALSE>>=
+<<msm_exact, eval = FALSE, message = FALSE>>=
 # msm with exact transition times
 tmat2 <- tmat; tmat2[is.na(tmat2)] <- 0
 msm_efit <- msm(state_id ~ time, subject = patient_id, 
@@ -748,7 +815,6 @@ msm_efit <- msm(state_id ~ time, subject = patient_id,
                 qmatrix = tmat2, exacttimes = TRUE)
 
 # flexsurv with exponential model
-library("flexsurv")
 exp_fits <- vector(length = n_trans, mode = "list")
 for (i in 1:length(wei_fits)){
   exp_fits[[i]] <- flexsurvreg(Surv(time, status) ~ 1, data = onc3, 
