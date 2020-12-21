@@ -12,6 +12,8 @@
 \usetikzlibrary{positioning}
 \usepackage{caption} 
 \captionsetup[table]{skip=5pt}
+\usepackage{amsmath}
+\DeclareMathOperator*{\argmax}{arg\,max}
 
 %% new custom commands
 \newcommand{\class}[1]{`\code{#1}'}
@@ -956,12 +958,55 @@ icer_tbl(cea_pw_cdtstm, output = "data.table", k = 100000)
 
 %% -- Cost-effectiveness analysis ----------------------------------------------
 \section{Cost-effectiveness analysis} \label{sec:cea}
+CEA is based on the net monetary benefit (NMB). For a given parameter set $\theta$, the NMB with treatment $j$ is computed as the difference between the monetized health gains from an intervention less costs, or,
+
+\begin{equation}
+NMB(j,\theta) = e_{j}(\theta)\cdot k- c_{j}(\theta),
+\end{equation}
+
+where $e_{j}$ and $c_{j}$ are measures of health outcomes (e.g. QALYs) and costs using treatment $j$ respectively, and $k$ is a decision makers willingness to pay (WTP) per unit of health outcomes. The optimal treatment is the one that maximizes the expected NMB.
+
+\begin{equation}
+j^{*} = \argmax_j E_{\theta} \left[NMB(j,\theta)\right].
+\end{equation}
+
+For a pairwise comparison, treatment $1$ is preferred to treatment $0$ if the expected incremental net monetary benefit (INMB) is positive; that is, if $E_\theta \left[INMB\right] > 0$ where the INMB is given by
+
+\begin{equation}
+INMB(\theta) = NMB(j = 1, \theta) - NMB(j = 0, \theta).
+\end{equation}
+
+Treatments can be compared in an equivalent manner using the incremental cost-effectiveness ratio (ICER). The most common case occurs when a new treatment is more effective and more costly so that treatment $1$ is preferred to treatment $0$ if the ICER is greater than the willingness to pay threshold $k$,
+
+\begin{equation}
+k > \frac{E_\theta[c_{1} - c_{0}]}{E_\theta[e_{1} - e_{0}]} = ICER.
+\end{equation}
+
+There are three additional cases. Treatment $1$ is considered to \emph{dominate} treatment $0$ if it is more effective and less costly. Treatment $1$ is \emph{dominated} by treatment $0$ if it is less effective and more costly. Finally, treatment $1$ is preferred to treatment $0$ if it is less effective and less costly when $k < ICER$. 
+
+\subsection{Example}
+Uncertainty over $\theta$ is captured using the PSA. The simulated distribution of QALYs and costs for each treatment strategy can be produced with the \code{$summarize()} method. Such output was generated above for the iCTSTM. 
+
+<<ce>>=
+ce_sim_ictstm
+@
+
+A CEA is performed from this output with the \code{cea()} and \code{cea_pw()} functions. \code{cea()} summarizes results by simultaneously accounting for each treatment strategy in the analysis, while \code{cea_pw()} (as used above) summarizes “pairwise” results in which each treatment is compared to a comparator.
+
 <<cea>>=
 wtp <- seq(0, 250000, 500) # Willingness to pay per QALY
 cea_ictstm <- cea(ce_sim_ictstm, dr_costs = .03, dr_qalys = .03, k = wtp)
+cea_pw_ictstm <- cea_pw(ce_sim_ictstm, comparator = 1,
+                        dr_qalys = .03, dr_costs = .03,
+                        k = wtp)
 @
 
-<<ce_plane>>=
+A number of common measures can be used to summarize a CEA and represent decision uncertainty. \pkg{hesim} provides support for a number of them including the cost-effectiveness plane, cost-effectiveness acceptability curve (CEAC), cost-effectiveness acceptability frontier (CEAF), and expected value of perfect information (EVPI).
+
+\subsubsection{Cost-effectiveness plane}
+The cost-effectiveness plane plots the incremental effectiveness of a treatment strategy (relative to a comparator) against the incremental cost of the treatment strategy. The plot is useful because it demonstrates both the uncertainty and the magnitude of the estimates. Each point on the plot is from a particular draw from the PSA. Data for plotting a cost-effectiveness plane comes from the \code{delta} output generated from \code{cea_pw()}.  
+
+<<ce_plane, fig.height = 4, fig.width = 6>>=
 library("scales")
 strategy_factor <- function (x) {
   factor(x, levels = 1:3, labels = c("SOC", "New 1", "New 2"))
@@ -984,8 +1029,10 @@ ggplot(cea_pw_ictstm$delta,
   geom_vline(xintercept = 0)
 @
 
+\subsubsection{Cost-effectiveness acceptability curve}
+A useful summary measure for quantifying uncertainty is the CEAC, which can generated based on simultaneous comparisons of all treatment strategies or by comparing each treatment strategy to a single comparator. The former is the probability that each strategy is the most cost-effective and is available from the \code{mce} element produced by \code{cea()}. 
 
-<<ceac>>=
+<<ceac_simultaneous>>=
 ggplot(cea_ictstm$mce,
        aes(x = k, y = prob, col = strategy_factor(strategy_id))) +
   geom_line() +
@@ -993,8 +1040,49 @@ ggplot(cea_ictstm$mce,
   ylab("Probability most cost-effective") +
   scale_x_continuous(breaks = seq(0, max(wtp), length.out = 6),
                      label = scales::dollar) +
+  scale_colour_discrete(name = "Strategy") +
   theme(legend.position = "bottom")
 @
+
+The relevant information for the latter is available from the \code{ceac} element produced by \code{cea_pw()}, and is the probability that each treatment is more cost-effective than the comparator.
+
+<<ceac_pw>>=
+ggplot(cea_pw_ictstm$ceac,
+        aes(x = k, y = prob, col = strategy_factor(strategy_id))) +
+  geom_line() +
+  xlab("Willingness to pay") +
+  ylab("Probability most cost-effective") +
+  scale_x_continuous(breaks = seq(0, max(wtp), length.out = 6),
+                     label = scales::dollar) +
+  theme(legend.position = "bottom") +
+  scale_colour_discrete(name = "Strategy")
+@
+
+\subsubsection{Cost-effectiveness acceptability frontier}
+One drawback of the CEAC is that the probability of being cost-effective cannot be used to determine the optimal treatment option. Instead, if the objective is to maximize health gain, then decisions should be based on the expected NMB. The CEAF, which plots the probability that the optimal treatment strategy (i.e., the strategy with the highest expected NMB) is cost-effective, is appropriate in this context. 
+
+A CEAF curve can be created by using the \code{best} column from the \code{mce} element to subset to the treatment strategy with the highest expected NMB for each WTP value.
+
+<<ceaf>>=
+ggplot(cea_ictstm$mce[best == 1],
+       aes(x = k, y = prob, col = strategy_factor(strategy_id))) +
+  geom_line() +
+  xlab("Willingness to pay") +
+  ylab("Probability most cost-effective") +
+  scale_x_continuous(breaks = seq(0, max(wtp), length.out = 6),
+                     label = scales::dollar) +
+  theme(legend.position = "bottom") +
+  scale_colour_discrete(name = "Strategy")
+@
+
+\subsubsection{Expected value of perfect information}
+A limitation of the prior measures are that they ignore the magnitude of QALY or cost gains. A measure which combines the probability of being most effective with the magnitude of the expected NMB is the EVPI. Intuitively, the EVPI provides an estimate of the amount that a decision maker would be willing to pay to collect additional data and completely eliminate uncertainty. Mathematically, the EVPI is defined as the difference between the maximum expected NMB given perfect information and the maximum expected NMB given current information. In other words, we calculate the NMB for the optimal treatment strategy for each random draw of the parameters and compare that to the NMB for the treatment strategy that is optimal when averaging across all parameters,
+
+\begin{equation}
+EVPI = E_\theta \left[max_j NMB(j, \theta)\right] - max_j E_\theta \left [ NMB(j, \theta)\right].
+\end{equation}
+
+The \code{cea()} function performs the EVPI calculation across all simulation draws from the PSA and for a number of WTP values. A plot of the the EVPI is shown below. The kink represents the WTP value where the optimal strategy changes.
 
 <<evpi>>=
 ggplot(cea_ictstm$evpi, aes(x = k, y = evpi)) +
