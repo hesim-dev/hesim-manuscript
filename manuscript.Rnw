@@ -6,6 +6,8 @@
 \usepackage{thumbpdf,lmodern}
 
 %% other packages
+\usepackage{graphicx}
+\usepackage{subcaption}
 \usepackage{algorithm}
 \usepackage{multirow}
 \usepackage{tikz}
@@ -1006,7 +1008,7 @@ A number of common measures can be used to summarize a CEA and represent decisio
 \subsubsection{Cost-effectiveness plane}
 The cost-effectiveness plane plots the incremental effectiveness of a treatment strategy (relative to a comparator) against the incremental cost of the treatment strategy. The plot is useful because it demonstrates both the uncertainty and the magnitude of the estimates. Each point on the plot is from a particular draw from the PSA. Data for plotting a cost-effectiveness plane comes from the \code{delta} output generated from \code{cea_pw()}.  
 
-<<ce_plane, fig.height = 4, fig.width = 6>>=
+<<ce_plane, fig.height = 4, fig.width = 6, fig.show="hide">>=
 library("scales")
 strategy_factor <- function (x) {
   factor(x, levels = 1:3, labels = c("SOC", "New 1", "New 2"))
@@ -1029,10 +1031,16 @@ ggplot(cea_pw_ictstm$delta,
   geom_vline(xintercept = 0)
 @
 
+\begin{figure}[t!]
+\centering
+\includegraphics{figure/ce_plane-1.pdf}
+\caption{Cost-effectiveness plane} \label{fig:ce-plane}
+\end{figure}
+
 \subsubsection{Cost-effectiveness acceptability curve}
 A useful summary measure for quantifying uncertainty is the CEAC, which can generated based on simultaneous comparisons of all treatment strategies or by comparing each treatment strategy to a single comparator. The former is the probability that each strategy is the most cost-effective and is available from the \code{mce} element produced by \code{cea()}. 
 
-<<ceac_simultaneous>>=
+<<ceac_simultaneous, fig.height = 4, fig.width = 6, fig.show = "hide">>=
 ggplot(cea_ictstm$mce,
        aes(x = k, y = prob, col = strategy_factor(strategy_id))) +
   geom_line() +
@@ -1046,7 +1054,7 @@ ggplot(cea_ictstm$mce,
 
 The relevant information for the latter is available from the \code{ceac} element produced by \code{cea_pw()}, and is the probability that each treatment is more cost-effective than the comparator.
 
-<<ceac_pw>>=
+<<ceac_pw, fig.height = 4, fig.width = 6, fig.show = "hide">>=
 ggplot(cea_pw_ictstm$ceac,
         aes(x = k, y = prob, col = strategy_factor(strategy_id))) +
   geom_line() +
@@ -1058,12 +1066,25 @@ ggplot(cea_pw_ictstm$ceac,
   scale_colour_discrete(name = "Strategy")
 @
 
+\begin{figure}[t!]
+\centering
+\begin{subfigure}[b]{.8\textwidth}
+\includegraphics{figure/ceac_simultaneous-1.pdf}
+\caption{Simultaneous comparison} \label{fig:ceac-simultaneous}
+\end{subfigure}
+\begin{subfigure}[b]{.8\textwidth}
+\includegraphics{figure/ceac_pw-1.pdf}
+\caption{Pairwise comparison} \label{fig:ceac-pw}
+\end{subfigure}
+\caption{Cost-effectiveness acceptability curves}\label{fig:ceac}
+\end{figure}
+
 \subsubsection{Cost-effectiveness acceptability frontier}
 One drawback of the CEAC is that the probability of being cost-effective cannot be used to determine the optimal treatment option. Instead, if the objective is to maximize health gain, then decisions should be based on the expected NMB. The CEAF, which plots the probability that the optimal treatment strategy (i.e., the strategy with the highest expected NMB) is cost-effective, is appropriate in this context. 
 
 A CEAF curve can be created by using the \code{best} column from the \code{mce} element to subset to the treatment strategy with the highest expected NMB for each WTP value.
 
-<<ceaf>>=
+<<ceaf, fig.height = 4, fig.width = 6, fig.show = "hide">>=
 ggplot(cea_ictstm$mce[best == 1],
        aes(x = k, y = prob, col = strategy_factor(strategy_id))) +
   geom_line() +
@@ -1075,6 +1096,12 @@ ggplot(cea_ictstm$mce[best == 1],
   scale_colour_discrete(name = "Strategy")
 @
 
+\begin{figure}[t!]
+\centering
+\includegraphics{figure/ceaf-1.pdf}
+\caption{Cost-effectiveness acceptability frontier} \label{fig:ceaf}
+\end{figure}
+
 \subsubsection{Expected value of perfect information}
 A limitation of the prior measures are that they ignore the magnitude of QALY or cost gains. A measure which combines the probability of being most effective with the magnitude of the expected NMB is the EVPI. Intuitively, the EVPI provides an estimate of the amount that a decision maker would be willing to pay to collect additional data and completely eliminate uncertainty. Mathematically, the EVPI is defined as the difference between the maximum expected NMB given perfect information and the maximum expected NMB given current information. In other words, we calculate the NMB for the optimal treatment strategy for each random draw of the parameters and compare that to the NMB for the treatment strategy that is optimal when averaging across all parameters,
 
@@ -1084,7 +1111,7 @@ EVPI = E_\theta \left[max_j NMB(j, \theta)\right] - max_j E_\theta \left [ NMB(j
 
 The \code{cea()} function performs the EVPI calculation across all simulation draws from the PSA and for a number of WTP values. A plot of the the EVPI is shown below. The kink represents the WTP value where the optimal strategy changes.
 
-<<evpi>>=
+<<evpi, fig.height = 4, fig.width = 6, fig.show = "hide">>=
 ggplot(cea_ictstm$evpi, aes(x = k, y = evpi)) +
   geom_line()  +
   xlab("Willingness to pay") +
@@ -1094,6 +1121,12 @@ ggplot(cea_ictstm$evpi, aes(x = k, y = evpi)) +
   scale_y_continuous(label = scales::dollar) +
   theme(legend.position = "bottom")
 @
+
+\begin{figure}[t!]
+\centering
+\includegraphics{figure/evpi-1.pdf}
+\caption{Expected value of perfect information} \label{fig:evpi}
+\end{figure}
 
 %% -- Discussion ---------------------------------------------------------------
 \section{Discussion} \label{sec:discussion}
