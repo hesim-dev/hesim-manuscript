@@ -1,0 +1,13 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+*.log
+*.bbl
+*.aux
+*.tex
+figure/
+cache/
+.DS_Store
+Sweave.sty
