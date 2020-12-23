@@ -120,45 +120,53 @@ Analyses were performed using \pkg{hesim} version \code{0.5.0}.
 
 %% -- Model taxonomy -----------------------------------------------------------
 \section{Model taxonomy} \label{sec:model-taxonomy}
-STMs simulate transitions between mutually exclusive health states. A common assumption is that the STM is a Markov model, meaning that transitions to the next health state can only depend on the present health state. In a time homogeneous Markov model transition probabilities are constant over time, whereas in a time inhomogeneous model they can depend on time since the start of the model. A semi-Markov model relaxes the Markov assumption and allows transitions to depend on time since entering an intermediate state.
+STMs simulate transitions between mutually exclusive health states. A common assumption is that a STM is a Markov model, meaning that transitions to the next health state can only depend on the present health state. In a time homogeneous Markov model transition probabilities are constant over time, whereas in a time inhomogeneous model they can depend on time since the start of the model. A semi-Markov model relaxes the Markov assumption and allows transitions to depend on time since entering an intermediate state.
 
-Markov and semi-Markov models can be formulated in either continuous or discrete time, at either the cohort or individual-level. In health economics, Markov cohort models tend to be formulated in discrete time (i.e., as cDTSTMs), although state probabilities can be computed in continuous time models using the Aalen-Johansen estimator \citep{aalen1978empirical} or the Kolmogorov forward equation \citep{cox1977theory}. While tunnel states can be used to approximate a semi-Markov model using a cohort approach, they can only be simulated in a general fashion using individual-level models. Discrete time individual simulation is possible, but we use continuous time models (i.e., iCTSTMs) because they do not require specification of model cycles and can be run considerably faster. 
+Markov and semi-Markov models can be formulated in either continuous or discrete time, at either the cohort- or individual-level. In health economics, Markov cohort models tend to be formulated in discrete time (i.e., as cDTSTMs), although state probabilities can be computed with continuous time models using the Aalen-Johansen estimator \citep{aalen1978empirical} or the Kolmogorov forward equation \citep{cox1977theory}. While tunnel states can be used to approximate a semi-Markov model using a cohort approach, they can only be simulated in a general fashion using individual-level models. Discrete time individual simulation is possible, but we use continuous time models (i.e., iCTSTMs) because they do not require specification of model cycles and can be run considerably faster. 
 
 PSMs are specialized models that can be parameterized using survival curves and are especially useful in oncology where PFS and OS are commonly reported. They are ``area under the curve'' models, although they can also be formulated as STMs by using the survival curves to construct transition probabilities. 
 
 \subsection{Cohort discrete time state transition models} \label{sec:cDTSTMs}
-cDTSTMs simulate the probability that a cohort of patients is in each of $H$ health states over time. Time is measured at discrete times with each time point known as a model cycle. A $1 \times H$ state vector that stores the probability of being in each health state at time $t$ is written as $x_t = (x_{1t}, x_{2t}, \ldots, x_{Ht})$ where $\sum_i x_{ht} = 1$. A transition probability matrix is denoted by $P_t$ where the $(r,s)$th element represents a transition from state $r$ to state $s$ between times $t$ and $t+1$. The state vector at time $t+1$ for each of $T$ model cycles is given by,
+cDTSTMs simulate the probability that a cohort of patients is in each of $H$ health states over time. Time is partitioned into intervals $\{[0, t_1), [t_1, t_2), \ldots, [t_C, t_{C+1})\}$ with each interval $0,\ldots, C$ known as a model cycle. An $H \times 1$ state vector that stores the probability of being in each health state at cycle $c$ is written as $x_c = (x_{1c}, x_{2c}, \ldots, x_{Hc})$ where $\sum_h x_{hc} = 1$. A transition probability matrix is an $H \times H$ matrix denoted by $P_c$ where the $(r,s)$th element represents a transition from state $r$ to state $s$ between model cycles $c$ and $c+1$. The state vector at cycle $c+1$ for each of $C$ model cycles is given by,
 
 \begin{equation} \label{eqn:markov-sim}
-x_{t+1}^T= x_t^T P_t, \quad t = 0,\ldots, T.
+x_{c+1}^T= x_c^T P_c, \quad c = 0,\ldots, C.
+\end{equation}
+
+The transition probability matrices can also be characterized in terms of transition intensity matrices, $Q_c$, of the same dimensions as $P_c$ and representing an underlying continuous process with a patient in state $X(t)$ at exact time $t$. The $(r,s)$th element is the hazard representing the instantaneous risk of moving from state $r$ to state $s$,
+
+\begin{equation} \label{eqn:hazard}
+h_{rs}(t) = \lim_{\Delta t\to 0} \frac{\Prob(X(t + \Delta t) = s | X(t) = r)}{\Delta t}.
+\end{equation}
+
+Each row of $Q_c$ sums to 0 whereas each row of $P_c$ sums to 1. If transition intensities are constant over the interval $(t_c, t_{c+1})$ for a model cycle with length $u = t_{c+1}-t_c$, then the transition probability matrix can be solved with the matrix exponential as,
+
+\begin{equation} \label{eqn:expmat}
+P_c = \textrm{Exp}(uQ_c).
 \end{equation}
 
 Costs and QALYs are computed by assigning (potentially time-varying) values to each health state. Utility, a measure of preference for a health state that normally ranges from $0$ (dead) to $1$ (perfect health), is used when computing QALYs \citep{torrance1986measurement}. Assuming model time is in years, state values for costs are estimated by annualizing costs. In a Markov model, state values, like transition probabilities, can depend on time since the start of the model but not on time since entering an intermediate health state.
 
-Expected values are computed by integrating the "weighted" probability of being in each state, where weights are a function of the discount factor and state values. That is, for a time horizon $T$, discounted costs and QALYs in health state h are computed as,
+Expected values are computed by integrating the ``weighted'' probability of being in each state, where weights are a function of the discount factor and state values. That is, for a time horizon $T$, discounted costs and QALYs in health state h are computed as,
 
 \begin{equation} \label{eqn:cohort-costs-qalys}
-\int_0^{T} z_h(t) e^{-rt} P_h(t) dt,
+\int_0^{T} z_h(t) e^{-rt} p_h(t) dt,
 \end{equation}
 
-where $z_h(t)$ is the predicted cost or utility value at time $t$, $r$ is the discount rate, and $P_h(t)$ is the probability of being in a given health state. 
+where $r$ is the discount rate and at time $t$, $z_h(t)$ is the predicted cost or utility value and $p_{h}(t) = \Prob(X(t) = h)$ is the probability of being in health state $h$. 
 
-In a discrete time, the integral is approximated with
+In discrete time, the integral is approximated with
 
 \begin{equation} \label{eqn:riemann-sum}
-\sum_{j = 1}^{T}f(t_j^{*})\Delta t_j
+\sum_{c = 0}^{C}f(t_c^{*})\Delta t_c,
 \end{equation}
 
-where $\Delta t_j = t_j - t_{j-1}$, $t_j^{*}\in[t_{j-1},t_j]$, and $f(t_j^{*})= z_h(t_j^{*}) e^{-rt_j^{*}} P_h(t_j^{*})$. Three methods can be used to estimate $f(t_j^{*})$. First, a left Riemann sum uses values at the start of each time interval $f(t_j^{*}) = f(t_{j-1})$. Second, a right Riemann sum uses values at the end of each time interval $f(t_j^{*}) = f(t_j)$. Finally, the trapezoid rule averages values at the start and end of each interval $f(t_j^{*}) = \frac{1}{2}\Delta t_j[f(t_{j-1}) + f(t_j)]$. 
+where $\Delta t_c = t_{c+1} - t_{c}$,  $t_c^{*}\in[t_{c},t_{c+1}]$, and $f(t)= z_h(t) e^{-rt} p_h(t)$. Three methods can be used to estimate $f(t_c^{*})$. First, a left Riemann sum uses values at the start of each time interval $f(t_c^{*}) = f(t_c)$. Second, a right Riemann sum uses values at the end of each time interval $f(t_c^{*}) = f(t_{c+1})$. Finally, the trapezoid rule averages values at the start and end of each interval $f(t_c^{*}) = \frac{1}{2}\Delta t_c[f(t_c) + f(t_{c+1})]$. 
 
 \subsection{Individual continuous time state transition models} \label{sec:iCTSTMs}
 iCTSTMs simulate individual trajectories between health states using random number generation. Trajectories are simulated for multiple patients and costs and QALYs are computed by averaging across the simulated patients. A reasonably large number of patients must be simulated to ensure that expected values are stable \citep{ohagan2007monte}. 
 
-In continuous time, a patient is in state $X(t)$ at time $t$. State transitions are modeled using a multi-state modeling framework \citep{putter2007tutorial} where the probability of a transition from state $r$ to state $s$ is governed by the hazard function,
-
-\begin{equation}
-h_{rs}(t) = \lim_{\Delta t\to 0} \frac{\Prob(X(t + \Delta t) = s | X(t) = r)}{\Delta t}.
-\end{equation}
+In continuous time, a patient is in state $X(t)$ at time $t$. State transitions are modeled using a multi-state modeling framework \citep{putter2007tutorial} where the probability of a transition from state $r$ to state $s$ is governed by the hazard function from Equation~\ref{eqn:hazard}.
 
 Simulated disease progression is characterized by $J$ distinct jumps between health states $D = \{(t_0, X(t_0)), (t_1, X(t_1)), \ldots (t_J, X(t_J))\}$ with a patient remaining in a health state from time $t_j$ until transitioning to the next state at $t_{j+1}$. Jumps between health states are simulated using parametric and flexible parametric survival models as implemented in the \pkg{flexsurv} package \citep{jackson2016flexsurv}. Specifically, if a patient enters state $r$ at time $t_j$, then a probability density function for the time-to-event $t^*$ for the $r \rightarrow s$ transition is, 
 
@@ -202,7 +210,7 @@ Survival functions are estimated by fitting parametric or flexible parametric su
 \section{Framework} \label{sec:framework}
 Economic models consist of a disease model, a utility model, and a set of cost models for each cost category. Model development proceeds in 4 steps. The first step is to setup the model by defining the model structure, target population, and treatment strategies of interest, and storing the relevant information in a \code{hesim_data} object. 
 
-The analysis is performed in the next three steps as shown in Figure~\ref{fig:econ-eval-process-hesim}. First, the disease progression, costs, and utility submodels are parameterized using ``estimation'' datasets. Next, the submodels are combined to construct an economic model. The economic model is then used to simulate, disease progression, QALYs, and costs as a function of ``input data''. The input data always contains variables describing the target population and treatment strategies of interest, but can also contain variables related to time to facilitate use of time-varying covariates or parameters. Finally, the simulated outcomes are used to perform decision analysis within a cost-effectiveness framework. While other approaches such as multi-criteria decision analysis (MCDA) could, in principle, be used as well, only CEA is currently supported. All models are simulated using PSA so that decision uncertainty can be represented.  
+Development and analysis of the model is performed in the next three steps as shown in Figure~\ref{fig:econ-eval-process-hesim}. First, the disease progression, costs, and utility submodels are parameterized using ``estimation'' datasets. Next, the submodels are combined to construct an economic model. The economic model is then used to simulate, disease progression, QALYs, and costs as a function of ``input data''. The input data always contains variables describing the target population and treatment strategies of interest, but can also contain variables related to time to facilitate use of time-varying covariates or parameters. Finally, the simulated outcomes are used to perform decision analysis within a cost-effectiveness framework. While other approaches such as multi-criteria decision analysis (MCDA) could, in principle, be used as well, only CEA is currently supported. All models are simulated using PSA so that decision uncertainty can be represented.  
 
 \begin{figure}[h]
 \centering
