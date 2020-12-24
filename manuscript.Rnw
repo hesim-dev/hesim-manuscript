@@ -630,7 +630,9 @@ onc_pfs_os <- as_pfs_os(onc3, patient_vars = c("patient_id", "female", "age",
 onc_pfs_os[patient_id %in% c(1, 2)]
 @
 
-Survival models must be fit for both PFS and OS. To imitate a realistic scenario, we assume that IPD is only available for SOC and that relative treatment effects are estimated with aggregate data (e.g., using a NMA). As such, we start by fitting Weibull models for SOC.
+Survival models must be fit for both PFS and OS. To imitate a realistic scenario, we assume that IPD is only available for SOC and that relative treatment effects are estimated with aggregate data (e.g., using a NMA). As such, we start by fitting Weibull models for SOC. 
+
+One difficulty with partitioned survival analysis is that it does not account for the correlation in the survival endpoints and the curves may consequently cross during the PSA. One way to better account for correlations between the endpoints is to draw PSA samples via bootstrapping whereby the PFS and OS models are refit repeatedly to resamples of the estimation dataset. To allow for bootstrapping we create a \code{partsurvfit} object, which stores both the survival models and the estimation data.
 
 <<psm_fits_soc>>=
 fit_pfs_soc_wei <- flexsurv::flexsurvreg(
@@ -643,7 +645,10 @@ fit_os_soc_wei <- flexsurvreg(
   data = onc_pfs_os, subset = (strategy_name == "SOC"),
   dist = "weibull")
 
-psmfit_soc_wei <- flexsurvreg_list(pfs = fit_pfs_soc_wei, os = fit_os_soc_wei)
+psmfit_soc_wei <- partsurvfit(
+  flexsurvreg_list(pfs = fit_pfs_soc_wei, os = fit_os_soc_wei),
+  data = onc_pfs_os
+)
 @
 
 The relative treatment effects are available (from a hypothetical external analysis) in terms of regression coefficients for the scale parameter on the log scale. The matrices \code{coef_pfs_wei} and \code{coef_os_wei} contain samples of the treatment effects for the PSA. We display the first 6 rows of the PFS coefficients. 
@@ -701,7 +706,8 @@ head(survmods_data)
 Since we did not fit a survival regression model containing both the absolute and relative treatment effects, we must construct the survival parameter object manually. We obtain the parameters of the fitted Weibull regression models with the generic function \code{create_params()}, and then manually add the relative treatment effects to the coefficients for the scale parameters. (Note that if we had not fit a model for SOC, the survival parameter objects could have still been constructed with \code{params_surv()}.)
 
 <<psm_survmods_params>>=
-survmods_params <- create_params(psmfit_soc_wei, n = n_samples)
+survmods_params <- create_params(psmfit_soc_wei, n = n_samples, 
+                                 bootstrap = FALSE)
 survmods_params$pfs$coefs$scale <- cbind(survmods_params$pfs$coefs$scale,
                                          coef_pfs_wei)
 survmods_params$os$coefs$scale <- cbind(survmods_params$os$coefs$scale,
