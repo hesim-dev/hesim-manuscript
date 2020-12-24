@@ -331,7 +331,7 @@ Economic model & Disease progression  & QALYs & Costs \\
 
 %% -- Illustrative example -----------------------------------------------------
 \section{Illustrative example} \label{sec:illustrative-example}
-We consider a three state model commonly used describe disease progression in oncology. As shown in Figure~\ref{fig:three-state-model}, the three health states are stable disease (i.e. not progressed), progressed, and death. Patients can transition to a more severe health state (stable $\rightarrow$ progressed, stable $\rightarrow$ death, and progression $\rightarrow$ death) but cannot recover to a less severe health state. We assume that patients remain on first line (1L) treatment until progression, at which time they switch to a second line (2L) treatment.
+We consider a three-state model commonly used in oncology. As shown in Figure~\ref{fig:three-state-model}, the three health states are stable disease (i.e. not progressed), progression, and death. Patients can transition to a more severe health state (stable $\rightarrow$ progression, stable $\rightarrow$ death, and progression $\rightarrow$ death) but cannot recover to a less severe health state. We assume that patients remain on first line (1L) treatment until progression, at which time they switch to a second line (2L) treatment.
 
 
 \begin{figure}[h]
@@ -367,7 +367,7 @@ colnames(tmat) <- rownames(tmat) <- c("Stable", "Progression", "Dead")
 print(tmat)
 @
 
-The target population, treatment strategies, and (non-death) health states are stored in a \code{hesim_data} object. There are 3 treatment strategies: standard of care (SOC) and two new interventions (New 1 and New 2). The target population consists of a heterogeneous population of 1000 patients, which is large enough to ensure that averages across patients in the individual simulation are reasonably stable. 
+The target population, treatment strategies, and (non-death) health states are stored in a \code{hesim_data} object. There are 3 treatment strategies: standard of care (SOC) and two new interventions (New 1 and New 2). The target population consists of a heterogeneous population of 1,000 patients, which is large enough to ensure that averages across patients in the individual simulation are reasonably stable. As we will see in the next section, patients can also be placed into subgroups with a \code{grp_id} column in the \code{patients} table; if left unspecified as done here, then all patients are assumed to belong to a single subgroup.
 
 <<hesim_data>>=
 library("hesim")
@@ -401,16 +401,15 @@ print(hesim_dat)
 @
 
 \subsubsection{Parameterization}
-In a STM, the disease model governs transitions between health states. For now, we assume that that patient level data with exact transition times is available so that a multi-state statistical model can be used to parameterize the disease model. 
+In a STM, the disease model governs transitions between health states. For now, we assume that individual patient data (IPD) with exact transition times is available so that a multi-state statistical model can be used to parameterize the disease model. 
 
-Multi-state data consists of one row for each possible transition from a given health state where only one transition is observed and all others are censored. We use the simulated dataset \code{onc3} from the \pkg{hesim} package.
+Multi-state data consists of one row for each possible transition from a given health state where at most one transition is observed and all others are censored. We use the simulated dataset \code{onc3} from the \pkg{hesim} package.
 
 <<ictstm_data>>=
 onc3[patient_id %in% c(1, 2)]
 @
 
-Multi-state models can be fit in one of two ways. First, a joint survival model with interaction terms for different transition can be estimated, which is useful if there are constraints in the parameters across
-transitions, such as coefficients that are assumed equal across transitions. Here, we will take a second approach that is computationally more efficient and fit a separate model for each transition. We illustrate with parametric Weibull models but multiple distributions should be compared in a real application \citep{williams2017cost}. The treatment effect is assumed to only influence transitions from stable disease since patients are assumed to switch to a 2L treatment after progression.
+Multi-state models can be fit in one of two ways. First, a joint survival model with interaction terms for different transition can be estimated, which is useful if there are constraints in the parameters, such as coefficients that are assumed equal across transitions. Here, we will take a second approach that is computationally more efficient and fit a separate model for each transition. We illustrate with parametric Weibull models but multiple distributions should be compared and evaluated in a real application \citep{williams2017cost}. The treatment effect is assumed to only influence transitions from stable disease since patients are assumed to switch to a 2L treatment after progression.
 
 <<ictstm_fits, warning = FALSE, message = FALSE>>=
 library("flexsurv")
@@ -439,7 +438,7 @@ utility_tbl <- stateval_tbl(
 print(utility_tbl)
 @
 
-Both medical and drug costs are considered. Medical costs are assumed to follow a gamma distribution which is often appropriate as they tend to be right skewed. Like utility, the distribution is characterized by the mean (\$2,000 with stable disease, \$9,500 with progressed disease) and standard error (assumed equal to the mean) and the method of moments is used to derive the underlying shape and scale parameters.
+Both medical and drug costs are considered. Medical costs are assumed to follow a gamma distribution which is often appropriate for costs since they tend to be right skewed. Like utility, the distribution is characterized by the mean (\$2,000 with stable disease, \$9,500 with progressed disease) and standard error (assumed equal to the mean) and the method of moments is used to derive the underlying shape and scale parameters.
 
 <<ictstm_medcosts>>=
 medcost_tbl <- stateval_tbl(
@@ -452,7 +451,7 @@ medcost_tbl <- stateval_tbl(
 print(medcost_tbl)
 @
 
-Drug costs are assumed to be fixed (i.e., measured without uncertainty). Costs are \$2,000 with SOC, \$12,000 with New 1, and \$15,000 with New 2 when on 1L treatment. All patients are assumed to switch to the same treatment at 2L after progression, which costs \$1,500 for the first 3 months and \$1,200 thereafter.
+Drug costs are assumed to be fixed (i.e., measured without uncertainty). When on 1L treatment, costs are \$2,000 with SOC, \$12,000 with New 1, and \$15,000 with New 2. All patients are assumed to switch to the same treatment at 2L after progression, which costs \$1,500 for the first 3 months and \$1,200 thereafter.
 
 <<ictstm_drugcost_setup, echo=FALSE, results="hide">>=
 n_times <- 2
@@ -479,7 +478,7 @@ print(drugcost_tbl)
 @
 
 \subsubsection{Simulation}
-Before constructing the economic model, we specify the number of parameters samples that will be drawn for each submodel for the PSA.
+Before constructing each submodel, we specify the number of parameters samples that will be drawn for the PSA.
 
 <<ictstm_n_samples>>=
 n_samples <- 100
@@ -493,7 +492,7 @@ transmod_data <- expand(hesim_dat,
 head(transmod_data)
 @
 
-The transition model is then constructed as a function of the parameters (from the fitted Weibull models) and the input data. We must also specify the allowed transitions, the desired number of PSA samples (drawn from the multivariate normal distribution of the maximum likelihood estimate of the regression coefficients), the "clock" (recall that we used a clock reset approach when fitting the Weibull models), and the starting age of the patients. The starting age of the patients is useful because it allows us to specify a maximum age for patients during the simulation, ensuring that the simulated patients do not live unrealistically long lives.
+The transition model is then constructed as a function of the parameters (from the fitted Weibull models) and the input data. We must also specify the allowed transitions, the desired number of PSA samples (drawn from the multivariate normal distribution of the maximum likelihood estimate of the regression coefficients), the "clock" (recall that we used a clock reset approach when fitting the Weibull models), and the starting age of the patients. Note that the starting age of the patients is useful because it allows us to specify a maximum age for patients during the simulation, ensuring that the simulated patients do not live unrealistically long lives.
 
 <<ictstm_transmod>>=
 transmod <- create_IndivCtstmTrans(wei_fits, transmod_data,
@@ -502,7 +501,7 @@ transmod <- create_IndivCtstmTrans(wei_fits, transmod_data,
                                    start_age = patients$age)
 @
 
-The utility and cost models can be easily constructed from the \code{stateval_tbl} objects with the \code{create_StateVals()} function, in which the (transformed) parameters are \code{tparams_mean} objects. The \code{hesim_data} object provides the information required to ensures that state values are constant within groups not specified within a particular \code{stateval_tbl}; for instance, since utility only varies by health state, it is assumed constant across patients, treatment strategies, and time. The models for each cost category are combined in a list.
+The utility and cost models can be easily constructed from the \code{stateval_tbl} objects with the \code{create_StateVals()} function, in which the (transformed) parameters are \code{tparams_mean} objects. The \code{hesim_data} object provides the information required to ensure that state values are constant within groups not specified within a particular \code{stateval_tbl}; for instance, since utility only varies by health state, it is assumed constant across patients, treatment strategies, and time. The models for each cost category are combined in a list.
   
 <<ictstm_stvalmods>>=
 # Utility
@@ -524,7 +523,7 @@ ictstm <- IndivCtstm$new(trans_model = transmod,
                          cost_models = costmods)
 @
 
-Once the economic model has been constructed, it is straightforward to simulate outcomes. A trajectory through the multi-state model is simulated with the \code{$sim_disease()} method with patients assumed to live to a maximum age of 100.
+Once the economic model has been constructed, it is straightforward to simulate outcomes. Trajectories through the multi-state model are simulated with the \code{$sim_disease()} method with patients assumed to live to a maximum age of 100.
 
 <<ictstm_sim_disease>>=
 ictstm$sim_disease(max_age = 100)
@@ -588,7 +587,7 @@ ictstm$sim_costs(dr = .03)
 head(ictstm$costs_)
 @
 
-For a given subgroup, QALYs and costs are simulated for each PSA sample, treatment strategy, and health state. They are summarized (i.e., averaged) across PSA samples and treatment strategies (and subgroups) with the \code{$summarize()} method. 
+For a given subgroup, QALYs and costs are simulated for each PSA sample, treatment strategy, and health state. They are summarized with the \code{$summarize()} method, which first sums across health states and then computes a (weighted) average across patients, by PSA sample, treatment strategy, and subgroup. 
 
 <<ictstm_summarize>>=
 ce_sim_ictstm <- ictstm$summarize()
@@ -608,9 +607,9 @@ icer_tbl(cea_pw_ictstm, colnames = strategies$strategy_name,
 
 %% -- Partitioned survival model -----------------------------------------------
 \subsection{Partitioned survival model} \label{sec:psm-example}
-In the previous section multi-state models were fit to individual patient data (IPD). Partitioned survival analysis is an alternative approach that is frequently used for economic evaluations of therapies in oncology. Although there is increasing evidence that PSM are more biased than multi-state models \citep{woods2020partitioned}, PSMs are easier to parameterize with aggregate level data. Techniques for fitting multi-state models with aggregate data require more constraints and are less established \citep{price2011parameterization, pahuta2019technique, jansen2020multi}. PSMs, in contrast, consist of separate independent survival models that can be estimated with aggregate level data by reconstructing IPD from digitized survival curves \citep{guyot2012enhanced}. 
+In the previous section a multi-state model was fit to IPD. Partitioned survival analysis is an alternative approach that is frequently used for economic evaluations of therapies in oncology. Although there is reason to believe that PSMs are more biased than multi-state models \citep{woods2020partitioned}, PSMs are easier to parameterize with aggregate-level data because techniques for fitting multi-state models with aggregate data require more constraints and are less established \citep{price2011parameterization, pahuta2019technique, jansen2020multi}. PSMs, in contrast, consist of separate independent survival models that can be estimated with aggregate-level data by reconstructing IPD from digitized survival curves \citep{guyot2012enhanced}. 
 
-Since a PSM is a cohort model, the \code{hesim_data} object must be modified accordingly. We now specify 4 representative patients that comprise the cohort, each given an equal weight. We consider separate subgroups (identified with \code{grp_id}) for males and females. 
+Since a PSM is a cohort model, the \code{hesim_data} object must be modified accordingly. We now assume that the cohort can be characterized by four representative patients, each given an equal weight. We consider separate subgroups (identified with \code{grp_id}) for males and females. 
 
 <<psm_hesim_data>>=
 hesim_dat$patients <- data.table(
@@ -623,7 +622,7 @@ hesim_dat$patients <- data.table(
 @
 
 \subsubsection{Parameterization}
-A multi-state dataset can be converted into dataset with one row per patients and outcomes for PFS and OS using the function \code{as_pfs_os()}. 
+A multi-state dataset can be converted into dataset with one row per patient and outcomes for PFS and OS using the function \code{as_pfs_os()}. 
 
 <<psm_data>>=
 onc_pfs_os <- as_pfs_os(onc3, patient_vars = c("patient_id", "female", "age", 
@@ -631,7 +630,7 @@ onc_pfs_os <- as_pfs_os(onc3, patient_vars = c("patient_id", "female", "age",
 onc_pfs_os[patient_id %in% c(1, 2)]
 @
 
-Survival models must be fit for both PFS and OS. To imitate a realistic scenario, we assume that patient level data is only available for SOC and that relative treatment effects are estimated with aggregate data (e.g., using a NMA). As such, we start by fitting Weibull models for the SOC.
+Survival models must be fit for both PFS and OS. To imitate a realistic scenario, we assume that IPD is only available for SOC and that relative treatment effects are estimated with aggregate data (e.g., using a NMA). As such, we start by fitting Weibull models for SOC.
 
 <<psm_fits_soc>>=
 fit_pfs_soc_wei <- flexsurv::flexsurvreg(
@@ -647,7 +646,7 @@ fit_os_soc_wei <- flexsurvreg(
 psmfit_soc_wei <- flexsurvreg_list(pfs = fit_pfs_soc_wei, os = fit_os_soc_wei)
 @
 
-The relative treatment effects are available in terms of regression coefficients for the scale parameter on the log scale. The matrices \code{coef_pfs_wei} and \code{coef_os_wei} contain samples of the treatment effects for the PSA. We display the first 6 rows of the PFS coefficients. 
+The relative treatment effects are available (from a hypothetical external analysis) in terms of regression coefficients for the scale parameter on the log scale. The matrices \code{coef_pfs_wei} and \code{coef_os_wei} contain samples of the treatment effects for the PSA. We display the first 6 rows of the PFS coefficients. 
 
 <<psm_fits, include = FALSE>>=
 # Create dummies
@@ -676,7 +675,7 @@ coef_os_wei <- params_os_wei$coefs$scale[, c("new1", "new2")]
 head(coef_pfs_wei)
 @
 
-The parameters for utility and medical costs remain the same as in the previous section. We do, however, modify drug costs. Since we are no longer using an individual-level model, costs cannot vary as a function of time in a health state. We now assume conservatively that drug costs remain at initial level when in the progression state.  
+The parameters for utility and medical costs remain the same as in the previous section. We do, however, modify drug costs. Since we are no longer using an individual-level model, costs cannot vary as a function of time in a health state. We now assume conservatively that drug costs remain at their initial level when in the progression state.  
 
 <<psm_stateval_tbl>>=
 attr(utility_tbl, "patients") <- hesim_dat$patients
@@ -709,7 +708,7 @@ survmods_params$os$coefs$scale <- cbind(survmods_params$os$coefs$scale,
                                         coef_os_wei)
 @
 
-Survival curves for both PFS and OS are predicted using the \code{PsmCurves} class, which is setup using the input data and the parameters of the Weibull model. However, since we manually created the parameter object---meaning that the parameters were not generating using a formula interface---the input data must contain each term contained in the parameter object. We must consequently create an intercept column of ones.
+Survival curves for both PFS and OS are predicted using the \code{PsmCurves} class, which is setup using the input data and the parameters of the Weibull model. However, since we manually created the parameter object---meaning that the model terms were not generated using a formula interface---the input data must contain each term contained in the parameter object. We must consequently create an intercept column of ones.
 
 <<psm_survmods>>=
 # To remove with update of package
@@ -733,7 +732,7 @@ medcostmod <- create_StateVals(medcost_tbl, n = n_samples)
 costmods <- list(Drug = drugcostmod, Medical = medcostmod)
 @
 
-Finally, the complete partitioned survial model is constructed using the survival, utility, and cost models 
+Now that the survival, utility, and cost submodels have been constructed, we can instantiate the complete PSM.  
 
 <<psm_econmod>>=
 psm <- Psm$new(survival_models = survmods,
@@ -778,8 +777,7 @@ ggplot(surv_means, aes(x = t, y = survival, fill = curve)) +
 \begin{figure}[t!]
 \centering
 \includegraphics{figure/psm_plot_survival-1.pdf}
-\caption{Mean progression free survival and overall survival, weighted by weight of each patient in the target population. Solid and dotted lines represent means and 95\% confidence intervals from the probabilistic sensitivity analysis, respectively. 
-weighted} \label{fig:psm-survival}
+\caption{Mean progression free survival and overall survival, weighted by the weight given to each patient in the target population. Solid and dotted lines represent means and 95\% confidence intervals from the probabilistic sensitivity analysis, respectively.} \label{fig:psm-survival}
 \end{figure}
 
 <<psm_sim_stateprobs>>=
@@ -787,7 +785,7 @@ psm$sim_stateprobs()
 psm$stateprobs_[sample == 1 & patient_id == 1 & state_id == 2 & t == 12]
 @
 
-QALYs and costs are simulated in using the same \code{sim_qalys()} and \code{sim_costs()} methods as in the previous section, as is the calculation of the ICER. 
+QALYs and costs are simulated using the same \code{sim_qalys()} and \code{sim_costs()} methods as in the previous section, and the ICER is computed in the same fashion as well. 
 
 <<psm_costs_qalys>>=
 psm$sim_qalys(dr = .03)
@@ -1146,7 +1144,7 @@ Alternative approaches might be appropriate in other contexts. For example, if e
 
 In Section~\ref{sec:ictstm-example}, we fit a clock-reset multi-state model and simulated outcomes with an individual-level simulation. An iCTSTM can, however, also be developed without fitting a statistical model using \proglang{R} by manually inputting the arguments (e.g., coefficients, probability distributions) of \code{params_surv} objects for each possible transition. If IPD is available for the reference treatment, \code{create_params()} can be use to obtain the baseline \code{params_surv} object from a fitted multi-state model, and relative treatment effects (e.g., hazard ratios) could be added as additional columns to the coefficients stored in the \code{params_surv} object. A similar approach was used in the partitioned survival analysis example above (Section~\ref{sec:psm-example}). A re-analysis of the total hip replacement model from the \citet{briggs2006decision} textbook using an individual-levels simulation is provided on the package website to illustrate. 
 
-A third feature worth mentioning is that a PSM can be extended to $N$ health states. The 3-state oncology case might, for instance, be extended to account for adverse events or multiple lines of therapy. One related application is the quality-adjusted time without symptoms or toxicity (Q-TWiST) method \citep{goldhirsch1989costs, lenderking1994eval}, which partitions patients into time spent (i) having toxic side effects, (ii) without symptoms or toxicities, and (iii) after progression. An example 4-state model is provided on the package website. 
+A third feature worth mentioning is that a PSM can be extended to $N$ health states. The 3-state oncology case might, for instance, be extended to account for adverse events or multiple lines of therapy. One related application is the quality-adjusted time without symptoms or toxicity (Q-TWiST) method \citep{goldhirsch1989costs, lenderking1994eval}, which partitions patients into time spent (i) having toxic side effects, (ii) without symptoms or toxicities, and (iii) after progression. An example four-state model is provided on the package website. 
 
 As mentioned in the introduction, \code{heemod} is the only other general purpose \proglang{R} package for cost-effectiveness modeling. It differs from \pkg{hesim} in that it focuses solely on cDTSTMs (i.e., Markov cohort models) and is not designed to facilitate integration of economic models with the statistical models used for parameter estimation. Another important difference is that \code{hesim} is considerably faster since all simulations are vectorized (i.e, performed at the \proglang{C++} level). Performance comparisons are provided on the package website. The time-inhomogeneous total hip replacement \citet{briggs2006decision} example was run with both packages using 1,000 PSA iterations. A cohort model in \pkg{heemod} completed in approximately 85 seconds while the same cohort model took approximately 1 second to run in \pkg{hesim} and an equivalent individual-level simulation in \code{hesim} ran in 9 seconds. 
 
