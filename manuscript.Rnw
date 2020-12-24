@@ -614,7 +614,7 @@ Since a PSM is a cohort model, the \code{hesim_data} object must be modified acc
 <<psm_hesim_data>>=
 hesim_dat$patients <- data.table(
   patient_id = 1:4,
-  grp_id = c(1, 1, 0, 0),
+  grp_id = c(1, 1, 2, 2),
   patient_wt = rep(1/4, 4),
   age = c(55, 65, 55, 65),
   female = c(1, 1, 0, 0)
@@ -787,10 +787,10 @@ psm$sim_costs(dr = .03)
 @
 
 <<psm_icer>>=
-ce_sim_psm <- psm$summarize()
+ce_sim_psm <- psm$summarize(by_grp = TRUE)
 cea_pw_psm <- cea_pw(ce_sim_psm, comparator = 1,
                      dr_qalys = .03, dr_costs = .03)
-icer_tbl(cea_pw_psm, colnames = strategies$strategy_name,
+icer_tbl(cea_pw_psm, output = "data.table",
          k = 100000)
 @
 
