@@ -709,10 +709,10 @@ survmods_params$os$coefs$scale <- cbind(survmods_params$os$coefs$scale,
 survmods_params$pfs$coefs$scale[1:2, ]
 @
 
-Survival curves for both PFS and OS are predicted using the \code{PsmCurves} class, which is setup using the input data and the parameters of the Weibull model. However, since we manually created the parameter object---meaning that the model terms were not generated using a formula interface---the input data must contain each term contained in the parameter object. We must consequently create a column of ones for the ``intercept``.
+Survival curves for both PFS and OS are predicted using the \code{PsmCurves} class, which is setup using the input data and the parameters of the Weibull model. However, since we manually created the parameter object---meaning that the model terms were not generated using a formula interface---the input data must contain each term contained in the parameter object. We must consequently create a column of ones for the intercept.
 
 <<psm_survmods>>=
-survmods_data[, intercept := 1]
+survmods_data[, ("(Intercept)") := 1]
 survmods <- create_PsmCurves(survmods_params, 
                              input_data = survmods_data)
 @
