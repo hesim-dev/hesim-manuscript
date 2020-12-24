@@ -698,7 +698,7 @@ survmods_data <- expand(hesim_dat, by = c("strategies", "patients"))
 head(survmods_data)
 @
 
-Since we did not fit a survival regression model containing both the absolute and relative treatment effects, we must construct the survival parameter object manually. We obtain the parameters of the fitted Weibull regression models with the generic function \code{create_params()}, and then manually add the relative treatment effects to the coefficients for the scale parameters. (Note that if we had not fit a model for SOC, a survival parameter objects could have still been constructed with \code{params_surv()}.)
+Since we did not fit a survival regression model containing both the absolute and relative treatment effects, we must construct the survival parameter object manually. We obtain the parameters of the fitted Weibull regression models with the generic function \code{create_params()}, and then manually add the relative treatment effects to the coefficients for the scale parameters. (Note that if we had not fit a model for SOC, the survival parameter objects could have still been constructed with \code{params_surv()}.)
 
 <<psm_survmods_params>>=
 survmods_params <- create_params(psmfit_soc_wei, n = n_samples)
@@ -802,14 +802,14 @@ icer_tbl(cea_pw_psm, colnames = strategies$strategy_name,
 
 %% -- Cohort discrete time state transition model ------------------------------
 \subsection{Cohort disctete time state transition model} \label{sec:cdtstm-example}
-The third model type supported by \pkg{hesim} is the cDTSTM. Although it is commonly used in health economics, the approaches taken in Section~\ref{sec:ictstm-example} and \ref{sec:psm-example} make better use of multi-state data if the time to event outcomes are continuously observed. However, in some cases panel data is available where observations are only collected at arbitrary times. This may, for instance, occur in routine practice oncology data when progression of disease is not continuously evaluated. To facilitate analysis of this type of data, we have converted the \code{onc3} dataset from above into panel form. 
+The third model type supported by \pkg{hesim} is the cDTSTM. Although it is commonly used in health economics, the approaches taken in Section~\ref{sec:ictstm-example} and \ref{sec:psm-example} make better use of multi-state data if the time-to-event outcomes are continuously observed. Unfortunately, observations are sometimes only collected at arbitrary times, which results in what is referred to as panel data. This may, for instance, occur in routine practice oncology data when progression of disease is not continuously evaluated. To facilitate analysis of this type of data, we have converted the \code{onc3} dataset from above into panel form. 
 
 <<cdtstm_data, warning = FALSE>>=
 head(onc3p)
 @
 
 \subsubsection{Parameterization}
-As in Section~\ref{sec:psm-example}, we consider a case where patient level data is available for SOC but aggregate level data is used to estimate the relative treatment effects. When exact transition times are not observed, the survival models estimated in Section~\ref{sec:ictstm-example} are inappropriate. The \pkg{msm} package, can, however, be used to estimate models from such data. The loss of information does come at a price as only exponential and piecewise exponential models are possible. We illustrate by fitting an exponential multi-state model for SOC using \pkg{msm}. (Note that if exact times were observed and we set the argument \code{exacttimes = TRUE}, then the parameter estimates would be the same as an exponential model fit using \code{flexsurvreg()}.)
+As in Section~\ref{sec:psm-example}, we consider a case where IPD is available for SOC but aggregate-level data is used to estimate the relative treatment effects. When exact transition times are not observed, the survival models estimated in Section~\ref{sec:ictstm-example} are inappropriate. The \pkg{msm} package, can, however, be used to estimate models from such data. The loss of information does come at a price as only exponential and piecewise exponential models are possible. We illustrate by fitting an exponential multi-state model for SOC using \pkg{msm}. (Note that if exact times were observed and we set the argument \code{exacttimes = TRUE}, then the parameter estimates would be the same as an exponential model fit using \code{flexsurvreg()}.)
 
 <<cdtstm_fit_soc, warning = FALSE, message = FALSE>>=
 library("msm")
@@ -863,13 +863,14 @@ params_rr_def <- define_rng({
 params_rr_rng <- eval_rng(params_rr_def, params_rr)
 @
 
-In the prior two sections, we constructed the disease model using parameter (i.e., \code{params_surv}) objects. Here, we will use a transformed parameter (i.e., \code{tparams_transprobs}) object, which is a very flexible way to construct the transition probability matrices for a cDTSTM. A \code{tparams_transprobs} object requires a 3-dimensional array of transition matrices, sorted by PSA sample, treatment strategy, patient, and optionally (in a time-inhomogeneous model) time interval.
+In Sections~\ref{sec:ictstm-example} and \ref{sec:psm-example}, we constructed the disease model using parameter (i.e., \code{params_surv}) objects. Here, we will use a transformed parameter (i.e., \code{tparams_transprobs}) object, which is a very flexible way to construct the transition probability matrices for a cDTSTM. A \code{tparams_transprobs} object requires a 3-dimensional array of transition matrices, sorted by PSA sample, treatment strategy, patient, and optionally (in a time-inhomogeneous model) time interval.
 
-We start by predicting transition intensity matrices for SOC from the exponential multi-state model using the same input data used for the survival models in the PSM example. A prediction is made for each representative patient and samples of the transition intensity matrices are drawn for the PSA using the asymptotic normal approximation. The array contains $B \times N_p$ matrices where $B$ is the number of PSA samples and $N_p$ is the number of patients. 
+We start by predicting transition intensity matrices for SOC from the exponential multi-state model using the same input data used for the survival models in the PSM example. A prediction is made for each representative patient and samples of the transition intensity matrices are drawn for the PSA using an asymptotic normal approximation. The array contains $B \times N_p$ matrices where $B$ is the number of PSA samples and $N_p$ is the number of patients. 
 
 <<qmat_soc>>=
 transmod_data <- survmods_data
-qmat_soc <- qmatrix(msm_fit, newdata = transmod_data[strategy_name == "SOC"],
+qmat_soc <- qmatrix(msm_fit, 
+                    newdata = transmod_data[strategy_name == "SOC"],
                     uncertainty = "normal", n = n_samples)
 dim(qmat_soc)
 qmat_soc[,, 1]
@@ -890,13 +891,13 @@ tpmat_id <- tpmatrix_id(transmod_data, n_samples)
 head(tpmat_id)
 @
 
-Relative risks can be predicted for each row of the input data and each sample of the coefficients for the PSA using matrix multiplication. In particular, let $x$ be a $N \times k$ matrix where $k$ is the number of predictors and $\beta$ be a $B \times k$ matrix where each row contains a given sample for the PSA. The function \code{xbeta} produces a $N \times B$ matrix of predicted relative risks and then ``flattens'' the matrix to create a single vector of length $B \times N$.
+Relative risks can be predicted for each row of the input data and each sample of the coefficients for the PSA using matrix multiplication. In particular, let $x$ be a $N \times k$ matrix where $k$ is the number of predictors and $\beta$ be a $B \times k$ matrix where each row contains a given sample for the PSA. The function \code{xbeta} performs the matrix multiplication operation $x\beta^T$ to produce a $N \times B$ matrix of predicted relative risks and then ``flattens'' the matrix to create a single vector of length $N \times B$.
 
 <<xbeta>>=
 xbeta <- function(x, beta) c(x %*% t(beta))
 @
 
-We use this function to predict distributions of relative risks (for the transitions stable $\rightarrow$ progression and stable $\rightarrow$ death) as a function of the three treatment strategies. 
+We use this function to predict distributions of relative risks (for the transitions stable $\rightarrow$ progression and stable $\rightarrow$ death) for each row of the input data as a function of the three treatment strategies. 
 
 <<rr>>=
 x_rr <- as.matrix(transmod_data[, .(soc, new1, new2)])
@@ -914,10 +915,11 @@ tprobs <- tparams_transprobs(pmat, tpmat_id)
 
 
 \subsubsection{Simulation}
-One the model has been parameterized, the simulation is straightforward. The transition model depends only on the transition probability matrices and the cycle length,
+Once the model has been parameterized, the simulation is straightforward. The transition model depends only on the transition probability matrices and the cycle length,
 
 <<dtstm_transmod>>=
-transmod <- CohortDtstmTrans$new(params = tprobs, cycle_length = cycle_len)
+transmod <- CohortDtstmTrans$new(params = tprobs, 
+                                 cycle_length = cycle_len)
 @
 
 and the complete economic model is again instantiated from the transition, utility, and cost submodels. 
