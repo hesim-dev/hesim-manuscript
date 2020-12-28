@@ -586,22 +586,11 @@ ictstm$sim_costs(dr = .03)
 head(ictstm$costs_)
 @
 
-For a given subgroup, QALYs and costs are simulated for each PSA sample, treatment strategy, and health state. They are summarized with the \code{$summarize()} method, which first sums across health states and then computes a (weighted) average across patients, by PSA sample, treatment strategy, and subgroup. 
+For a given subgroup, QALYs and costs are simulated for each PSA sample, treatment strategy, and health state. They are summarized with the \code{$summarize()} method, which first sums across health states and then computes a (weighted) average across patients, by PSA sample, treatment strategy, and subgroup. The output is a generic cost-effectiveness object (of class \code{ce}) that can be used to perform CEA as demonstrated in Section~\ref{sec:cea}. Here, we use the \code{summary()} method to summarize the results. 
 
 <<ictstm_summarize>>=
 ce_sim_ictstm <- ictstm$summarize()
-head(ce_sim_ictstm$costs)
-@
-
-The output is a generic cost-effectiveness object (of class \code{ce}) that can be used to perform CEA. We demonstrate a formal CEA in Section~\ref{sec:cea}. Here, we make a simple pairwise comparisons between each of the new interventions (New 2 and New 1) and the comparator (SOC), and compute the incremental cost-effectiveness ratio (ICER).
-
-<<ictstm_icer>>=
-ce_sim_ictstm <- ictstm$summarize()
-cea_pw_ictstm <- cea_pw(ce_sim_ictstm, comparator = 1,
-                        dr_qalys = .03, dr_costs = .03,
-                        k = seq(0, 25000, 500))
-icer_tbl(cea_pw_ictstm, colnames = strategies$strategy_name,
-         k = 100000)
+summary(ce_sim_ictstm)
 @
 
 %% -- Partitioned survival model -----------------------------------------------
@@ -782,7 +771,7 @@ psm$sim_stateprobs()
 psm$stateprobs_[sample == 1 & patient_id == 1 & state_id == 2 & t == 12]
 @
 
-QALYs and costs are simulated using the same \code{sim_qalys()} and \code{sim_costs()} methods as in the previous section, and the ICER is computed in the same fashion as well. 
+QALYs and costs are simulated using the same \code{sim_qalys()} and \code{sim_costs()} methods as in the previous section, and the results are summarized in the same fashion as well. 
 
 <<psm_costs_qalys>>=
 psm$sim_qalys(dr = .03)
@@ -791,10 +780,7 @@ psm$sim_costs(dr = .03)
 
 <<psm_icer>>=
 ce_sim_psm <- psm$summarize(by_grp = TRUE)
-cea_pw_psm <- cea_pw(ce_sim_psm, comparator = 1,
-                     dr_qalys = .03, dr_costs = .03)
-icer_tbl(cea_pw_psm, output = "data.table",
-         k = 100000)
+summary(ce_sim_psm)
 @
 
 %% -- Cohort discrete time state transition model ------------------------------
@@ -954,13 +940,11 @@ cdtstm$sim_qalys(dr = .03)
 cdtstm$sim_costs(dr = .03)
 @
 
-and an ICER is computed. 
+and the results are summarized.
 
 <<cdtstm_icer>>=
 ce_sim_cdtstm <- cdtstm$summarize()
-cea_pw_cdtstm <- cea_pw(ce_sim_cdtstm, comparator = 1, 
-                        dr_costs = .03, dr_qalys = .03)
-icer_tbl(cea_pw_cdtstm, output = "data.table", k = 100000)
+summary(ce_sim_cdtstm)
 @
 
 %% -- Cost-effectiveness analysis ----------------------------------------------
