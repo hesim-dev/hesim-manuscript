@@ -488,11 +488,12 @@ transmod_data <- expand(hesim_dat,
 head(transmod_data)
 @
 
-The transition model is then constructed as a function of the parameters (from the fitted Weibull models) and the input data. We must also specify the allowed transitions, the desired number of PSA samples (drawn from the multivariate normal distribution of the maximum likelihood estimate of the regression coefficients), the "clock" (recall that we used a clock reset approach when fitting the Weibull models), and the starting age of the patients. Note that the starting age of the patients is useful because it allows us to specify a maximum age for patients during the simulation, ensuring that the simulated patients do not live unrealistically long lives.
+The transition model is then constructed as a function of the parameters (from the fitted Weibull models) and the input data. We must also specify the allowed transitions, the desired number of PSA samples, the "clock" (recall that we used a clock reset approach when fitting the Weibull models), and the starting age of the patients. Parameters for the PSA are, by default, drawn from the multivariate normal distribution of the maximum likelihood estimate of the regression coefficients, although we make this explicit with the \code{uncertainty} argument. The starting age of the patients is useful because it allows us to specify a maximum age for patients during the simulation, ensuring that the simulated patients do not live unrealistically long lives. 
 
 <<ictstm_transmod>>=
 transmod <- create_IndivCtstmTrans(wei_fits, transmod_data,
                                    trans_mat = tmat, n = n_samples,
+                                   uncertainty = "normal",
                                    clock = "reset",
                                    start_age = patients$age)
 @
@@ -700,7 +701,7 @@ Since we did not fit a survival regression model containing both the absolute an
 
 <<psm_survmods_params>>=
 survmods_params <- create_params(psmfit_soc_wei, n = n_samples, 
-                                 bootstrap = FALSE)
+                                 uncertainty = "normal")
 survmods_params$pfs$coefs$scale <- cbind(survmods_params$pfs$coefs$scale,
                                          coef_pfs_wei)
 survmods_params$os$coefs$scale <- cbind(survmods_params$os$coefs$scale,
