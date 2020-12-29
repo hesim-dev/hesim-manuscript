@@ -474,7 +474,7 @@ print(drugcost_tbl)
 @
 
 \subsubsection{Simulation}
-Before constructing each submodel, we specify the number of parameters samples that will be drawn for the PSA.
+Before constructing each submodel, we specify the number of parameter samples that will be drawn for the PSA.
 
 <<ictstm_n_samples>>=
 n_samples <- 100
@@ -993,11 +993,13 @@ cea_pw_ictstm <- cea_pw(ce_sim_ictstm, comparator = 1,
 @
 
 \subsubsection{Incremental cost-effectiveness ratio}
-The \code{cea_pw()} function computes the ICER and a summary table can be produced with \code{icer_tbl()}. The argument \code{k} is the WTP threshold and in this example the new interventions are labeled as``cost-effective'' relative to SOC if the ICER is below this threshold. Incremental QALYs and incremental costs are computed by averaging over PSA samples. 
+The \code{cea_pw()} function computes the ICER. A summary table can be produced with \code{icer()} and \code{format()} can format the table for pretty printing. The argument \code{k} is the WTP threshold and is used to compute the INMB. Estimates of incremental QALYs and incremental costs are computed by averaging over PSA samples. By default, 95\% confidence intervals are presented and are computed using quantiles from the PSA.
 
 <<cea_icer>>=
-icer_tbl(cea_pw_ictstm, colnames = strategies$strategy_name,
-         k = 100000)
+library("magrittr")
+icer(cea_pw_ictstm, k = 100000, 
+     strategy_values = strategies$strategy_name[-1]) %>%
+  format()
 @
 
 \subsubsection{Representing decision uncertainty}
