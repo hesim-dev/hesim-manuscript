@@ -586,11 +586,14 @@ ictstm$sim_costs(dr = .03)
 head(ictstm$costs_)
 @
 
-For a given subgroup, QALYs and costs are simulated for each PSA sample, treatment strategy, and health state. They are summarized with the \code{$summarize()} method, which first sums across health states and then computes a (weighted) average across patients, by PSA sample, treatment strategy, and subgroup. The output is a generic cost-effectiveness object (of class \code{ce}) that can be used to perform CEA as demonstrated in Section~\ref{sec:cea}. Here, we use the \code{summary()} method to summarize the results. 
+For a given subgroup, QALYs and costs are simulated for each PSA sample, treatment strategy, and health state. They are summarized with the \code{$summarize()} method, which first sums across health states and then computes a (weighted) average across patients, by PSA sample, treatment strategy, and subgroup. The output is a generic cost-effectiveness object (of class \code{ce}) that can be used to perform CEA as demonstrated in Section~\ref{sec:cea}. Here, we use the \code{summary()} method to summarize the results and make use the ``pipes'' from the \pkg{magrittr} to nicely format the output. 
 
 <<ictstm_summarize>>=
+library("magrittr")
 ce_sim_ictstm <- ictstm$summarize()
-summary(ce_sim_ictstm)
+summary(ce_sim_ictstm, 
+        strategy_values = strategies$strategy_name) %>%
+  format()
 @
 
 %% -- Partitioned survival model -----------------------------------------------
@@ -780,7 +783,9 @@ psm$sim_costs(dr = .03)
 
 <<psm_icer>>=
 ce_sim_psm <- psm$summarize(by_grp = TRUE)
-summary(ce_sim_psm)
+summary(ce_sim_psm, 
+        strategy_values = strategies$strategy_name) %>%
+  format()
 @
 
 %% -- Cohort discrete time state transition model ------------------------------
@@ -944,7 +949,9 @@ and the results are summarized.
 
 <<cdtstm_icer>>=
 ce_sim_cdtstm <- cdtstm$summarize()
-summary(ce_sim_cdtstm)
+summary(ce_sim_cdtstm, 
+        strategy_values = strategies$strategy_name) %>%
+  format()
 @
 
 %% -- Cost-effectiveness analysis ----------------------------------------------
@@ -982,7 +989,7 @@ Uncertainty over $\theta$ is captured using the PSA. The simulated distribution 
 ce_sim_ictstm
 @
 
-A CEA is performed from this output with the \code{cea()} and \code{cea_pw()} functions. \code{cea()} summarizes results by simultaneously accounting for each treatment strategy in the analysis, while \code{cea_pw()} summarizes ``pairwise'' results in which each treatment is compared to a comparator.
+A CEA is performed from this output with the \code{cea()} and \code{cea_pw()} functions. \code{cea()} summarizes results by simultaneously accounting for each treatment strategy in the analysis, while \code{cea_pw()} summarizes ``pairwise'' results in which each treatment is compared to a comparator (in this case SOC).
 
 <<cea>>=
 wtp <- seq(0, 250000, 500) # Willingness to pay per QALY
@@ -996,7 +1003,6 @@ cea_pw_ictstm <- cea_pw(ce_sim_ictstm, comparator = 1,
 The \code{cea_pw()} function computes the ICER. A summary table can be produced with \code{icer()} and \code{format()} can format the table for pretty printing. The argument \code{k} is the WTP threshold and is used to compute the INMB. Estimates of incremental QALYs and incremental costs are computed by averaging over PSA samples. By default, 95\% confidence intervals are presented and are computed using quantiles from the PSA.
 
 <<cea_icer>>=
-library("magrittr")
 icer(cea_pw_ictstm, k = 100000, 
      strategy_values = strategies$strategy_name[-1]) %>%
   format()
