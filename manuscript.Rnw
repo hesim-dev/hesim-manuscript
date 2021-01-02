@@ -400,6 +400,11 @@ hesim_dat <- hesim_data(
 print(hesim_dat)
 @
 
+<<labels_indiv>>=
+labs_indiv <- get_labels(hesim_dat, grp_label = NULL)
+@
+
+
 \subsubsection{Parameterization}
 In a STM, the disease model governs transitions between health states. For now, we assume that individual patient data (IPD) with exact transition times is available so that a multi-state statistical model can be used to parameterize the disease model. 
 
@@ -1009,7 +1014,7 @@ icer(cea_pw_ictstm, k = 100000,
 @
 
 \subsubsection{Representing decision uncertainty}
-A number of common measures can be used to represent decision uncertainty from a CEA, including cost-effectiveness planes, cost-effectiveness acceptability curves (CEAC), cost-effectiveness acceptability frontiers (CEAF), and the expected value of perfect information (EVPI). Example plots of each from the code that follows are shown in Figure~\ref{fig:cea-plots}.
+A number of common measures can be used to represent decision uncertainty from a CEA, including cost-effectiveness planes, cost-effectiveness acceptability curves (CEAC), cost-effectiveness acceptability frontiers (CEAF), and the expected value of perfect information (EVPI). Plots can be quickly generated with \code{plot_ceplane()}, \code{plot_ceac()}, \code{plot_ceaf()}, and \code{plot_evpi()} functions, respectively. Example plots from the code that follows are shown in Figure~\ref{fig:cea-plots}
 
 \begin{figure}[t!]
 \centering
@@ -1048,57 +1053,17 @@ A number of common measures can be used to represent decision uncertainty from a
 \caption{Representations of decision uncertainty}\label{fig:cea-plots}
 \end{figure}
 
-The cost-effectiveness plane plots the incremental effectiveness of a treatment strategy (relative to a comparator) against the incremental cost of the treatment strategy. The plot is useful because it demonstrates both the uncertainty and the magnitude of the estimates. Each point on the plot is from a particular draw from the PSA. Data for plotting a cost-effectiveness plane comes from the \code{delta} output generated from \code{cea_pw()}.  
+The cost-effectiveness plane plots the incremental effectiveness of a treatment strategy (relative to a comparator) against the incremental cost of the treatment strategy. The plot is useful because it demonstrates both the uncertainty and the magnitude of the estimates. Each point on the plot is from a particular draw from the PSA. Data for plotting a cost-effectiveness plane comes from the \code{delta} output generated from \code{cea_pw()}.
 
 <<ce_plane, fig.height = 3, fig.width = 4.5, fig.show="hide">>=
-library("scales")
-strategy_factor <- function (x) {
-  factor(x, levels = 1:3, labels = c("SOC", "New 1", "New 2"))
-}
-
-xlim <- ceiling(max(cea_pw_ictstm$delta[, ie]) * 1.2)
-ylim <- max(cea_pw_ictstm$delta[, ic]) * 1.2
-ggplot(cea_pw_ictstm$delta,
-       aes(x = ie, y = ic, col = strategy_factor(strategy_id))) +
-  geom_jitter(size = .5)  +
-  xlab("Incremental QALYs") +
-  ylab("Incremental cost") +
-  scale_y_continuous(limits = c(-ylim, ylim),
-                     labels = scales::dollar) +
-  scale_x_continuous(limits = c(-xlim, xlim), breaks = seq(-2, 2, .5)) +
-  theme(legend.position = "bottom") +
-  scale_colour_discrete(name = "Strategy") +
-  geom_abline(slope = 100000, linetype = "dashed") +
-  geom_hline(yintercept = 0) +
-  geom_vline(xintercept = 0)
+plot_ceplane(cea_pw_ictstm, labels = labs_indiv)
 @
 
-A useful summary measure for quantifying uncertainty is the CEAC, which can be generated based on simultaneous comparisons of all treatment strategies or by comparing each treatment strategy to a single comparator. The former is the probability that each strategy is the most cost-effective and is available from the \code{mce} element produced by \code{cea()}. 
+The CEAC can be generated based on simultaneous comparisons of all treatment strategies or by comparing each treatment strategy to a single comparator. The former is the probability that each strategy is the most cost-effective and is available from the \code{mce} element produced by \code{cea()}. The relevant information for the latter is available from the \code{ceac} element produced by \code{cea_pw()}, and is the probability that each treatment is more cost-effective than the comparator.
 
-<<ceac_simultaneous, fig.height = 3, fig.width = 4.5, fig.show = "hide">>=
-ggplot(cea_ictstm$mce,
-       aes(x = k, y = prob, col = strategy_factor(strategy_id))) +
-  geom_line() +
-  xlab("Willingness to pay") +
-  ylab("Probability most cost-effective") +
-  scale_x_continuous(breaks = seq(0, max(wtp), length.out = 6),
-                     label = scales::dollar) +
-  scale_colour_discrete(name = "Strategy") +
-  theme(legend.position = "bottom")
-@
-
-The relevant information for the latter is available from the \code{ceac} element produced by \code{cea_pw()}, and is the probability that each treatment is more cost-effective than the comparator.
-
-<<ceac_pw, fig.height = 3, fig.width = 4.5, fig.show = "hide">>=
-ggplot(cea_pw_ictstm$ceac,
-        aes(x = k, y = prob, col = strategy_factor(strategy_id))) +
-  geom_line() +
-  xlab("Willingness to pay") +
-  ylab("Probability most cost-effective") +
-  scale_x_continuous(breaks = seq(0, max(wtp), length.out = 6),
-                     label = scales::dollar) +
-  theme(legend.position = "bottom") +
-  scale_colour_discrete(name = "Strategy")
+<<ceac, fig.height = 3, fig.width = 4.5, fig.show = "hide">>=
+plot_ceac(cea_ictstm, labels = labs_indiv)
+plot_ceac(cea_pw_ictstm, labels = labs_indiv)
 @
 
 One drawback of the CEAC is that the probability of being cost-effective cannot be used to determine the optimal treatment option. Instead, if the objective is to maximize health gain, then decisions should be based on the expected NMB. The CEAF, which plots the probability that the optimal treatment strategy (i.e., the strategy with the highest expected NMB) is cost-effective, is appropriate in this context. 
@@ -1106,15 +1071,7 @@ One drawback of the CEAC is that the probability of being cost-effective cannot 
 A CEAF curve can be created by using the \code{best} column from the \code{mce} element to subset to the treatment strategy with the highest expected NMB for each WTP value.
 
 <<ceaf, fig.height = 3, fig.width = 4.5, fig.show = "hide">>=
-ggplot(cea_ictstm$mce[best == 1],
-       aes(x = k, y = prob, col = strategy_factor(strategy_id))) +
-  geom_line() +
-  xlab("Willingness to pay") +
-  ylab("Probability most cost-effective") +
-  scale_x_continuous(breaks = seq(0, max(wtp), length.out = 6),
-                     label = scales::dollar) +
-  theme(legend.position = "bottom") +
-  scale_colour_discrete(name = "Strategy")
+plot_ceaf(cea_ictstm, labels = labs_indiv)
 @
 
 A limitation of the prior measures are that they ignore the magnitude of QALY or cost gains. A measure which combines the probability of being most effective with the magnitude of the expected NMB is the EVPI. Intuitively, the EVPI provides an estimate of the amount that a decision maker would be willing to pay to collect additional data and completely eliminate uncertainty. Mathematically, the EVPI is defined as the difference between the maximum expected NMB given perfect information and the maximum expected NMB given current information. In other words, we calculate the NMB for the optimal treatment strategy for each random draw of the parameters and compare that to the NMB for the treatment strategy that is optimal when averaging across all parameters,
@@ -1126,14 +1083,7 @@ EVPI = E_\theta \left[\max_j NMB(j, \theta)\right] - \max_j E_\theta \left [ NMB
 The \code{cea()} function performs the EVPI calculation across all simulation draws from the PSA and for a number of WTP values. The kink in the plot represents the WTP value where the optimal strategy changes.
 
 <<evpi, fig.height = 3, fig.width = 4.5, fig.show = "hide">>=
-ggplot(cea_ictstm$evpi, aes(x = k, y = evpi)) +
-  geom_line()  +
-  xlab("Willingness to pay") +
-  ylab("Expected value of perfect information") +
-  scale_x_continuous(breaks = seq(0, max(wtp), length.out = 6),
-                     label = scales::dollar) +
-  scale_y_continuous(label = scales::dollar) +
-  theme(legend.position = "bottom")
+plot_evpi(cea_ictstm, labels = labs_indiv)
 @
 
 %% -- Discussion ---------------------------------------------------------------
