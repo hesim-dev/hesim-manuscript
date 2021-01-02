@@ -1019,33 +1019,33 @@ A number of common measures can be used to represent decision uncertainty from a
 \begin{figure}[t!]
 \centering
 % Cost-effectiveness plane
-\begin{subfigure}[b]{.48\textwidth}
+\begin{subfigure}[b]{.49\textwidth}
 \centering
 \includegraphics{figure/ce_plane-1.pdf}
 \caption{Cost-effectiveness plane} \label{subfig:ce-plane}
 \end{subfigure}
 % CEAC (simultaneous)
-\begin{subfigure}[b]{.48\textwidth}
+\begin{subfigure}[b]{.49\textwidth}
 \centering
-\includegraphics{figure/ceac_simultaneous-1.pdf}
+\includegraphics{figure/ceac-1.pdf}
 \caption{CEAC (simultaneous)} \label{subfig:ceac-simultaneous}
 \end{subfigure}
 \par\bigskip % Add some vertical space for second row
 % CEAC (pairwise)
-\begin{subfigure}[b]{.48\textwidth}
+\begin{subfigure}[b]{.49\textwidth}
 \centering
-\includegraphics{figure/ceac_pw-1.pdf}
+\includegraphics{figure/ceac-2.pdf}
 \caption{CEAC (pairwise)} \label{subfig:ceac-pw}
 \end{subfigure}
 % CEAF
-\begin{subfigure}[b]{.48\textwidth}
+\begin{subfigure}[b]{.49\textwidth}
 \centering
 \includegraphics{figure/ceaf-1.pdf}
 \caption{CEAF} \label{subfig:ceaf}
 \end{subfigure}
 \par\bigskip % Add some vertical space for third row
 % EVPI
-\begin{subfigure}[b]{.48\textwidth}
+\begin{subfigure}[b]{.49\textwidth}
 \centering
 \includegraphics{figure/evpi-1.pdf}
 \caption{EVPI} \label{subfig:evpi}
