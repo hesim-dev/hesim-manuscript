@@ -401,7 +401,8 @@ print(hesim_dat)
 @
 
 <<labels_indiv>>=
-labs_indiv <- get_labels(hesim_dat, grp_label = NULL)
+labs_indiv <- get_labels(hesim_dat)
+print(labs_indiv)
 @
 
 
@@ -596,8 +597,7 @@ For a given subgroup, QALYs and costs are simulated for each PSA sample, treatme
 <<ictstm_summarize>>=
 library("magrittr")
 ce_sim_ictstm <- ictstm$summarize()
-summary(ce_sim_ictstm, 
-        strategy_values = strategies$strategy_name) %>%
+summary(ce_sim_ictstm, labels = labs_indiv) %>%
   format()
 @
 
@@ -613,8 +613,14 @@ hesim_dat$patients <- data.table(
   grp_id = c(1, 1, 2, 2),
   patient_wt = rep(1/4, 4),
   age = c(55, 65, 55, 65),
-  female = c(1, 1, 0, 0)
+  female = c(1, 1, 0, 0),
+  grp_name = rep(c("Female", "Male"), 
+                 each = 2)
 )
+@
+
+<<labels_cohort>>=
+labs_cohort <- get_labels(hesim_dat)
 @
 
 \subsubsection{Parameterization}
@@ -788,8 +794,7 @@ psm$sim_costs(dr = .03)
 
 <<psm_icer>>=
 ce_sim_psm <- psm$summarize(by_grp = TRUE)
-summary(ce_sim_psm, 
-        strategy_values = strategies$strategy_name) %>%
+summary(ce_sim_psm, labels = labs_cohort) %>%
   format()
 @
 
@@ -954,8 +959,7 @@ and the results are summarized.
 
 <<cdtstm_icer>>=
 ce_sim_cdtstm <- cdtstm$summarize()
-summary(ce_sim_cdtstm, 
-        strategy_values = strategies$strategy_name) %>%
+summary(ce_sim_cdtstm, labels = labs_cohort) %>%
   format()
 @
 
@@ -1008,8 +1012,7 @@ cea_pw_ictstm <- cea_pw(ce_sim_ictstm, comparator = 1,
 The \code{cea_pw()} function computes the ICER. A summary table can be produced with \code{icer()} and \code{format()} can format the table for pretty printing. The argument \code{k} is the WTP threshold and is used to compute the INMB. Estimates of incremental QALYs and incremental costs are computed by averaging over PSA samples. By default, 95\% confidence intervals are presented and are computed using quantiles from the PSA.
 
 <<cea_icer>>=
-icer(cea_pw_ictstm, k = 100000, 
-     strategy_values = strategies$strategy_name[-1]) %>%
+icer(cea_pw_ictstm, k = 100000, labels = labs_indiv) %>%
   format()
 @
 
