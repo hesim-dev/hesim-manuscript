@@ -224,12 +224,12 @@
       "Version": "0.4.2.9999",
       "Source": "GitHub",
       "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteRepo": "hesim",
       "RemoteUsername": "hesim-dev",
+      "RemoteRepo": "hesim",
       "RemoteRef": "master",
-      "RemoteSha": "26260b0805bb7e9b73687eca594118bc91e1c068",
-      "Hash": "c4559ecaee87f14669f12ddc9af657a3"
+      "RemoteSha": "eb87504d13c1e84e6e44d3b3e5bb606b04695cc9",
+      "RemoteHost": "api.github.com",
+      "Hash": "f23e69962b0876be10093b19020e4ed0"
     },
     "highr": {
       "Package": "highr",
