@@ -116,7 +116,7 @@ Despite their computational demands and foundations in statistics, health econom
 
 The remainder of this paper is organized as follows. Section~\ref{sec:model-taxonomy} provides a mathematical description the economic models supported by \pkg{hesim}. An overview of the coding framework is provided in Section~\ref{sec:framework}. An illustrative example using a three state model of disease progression in oncology is provided in Section~\ref{sec:illustrative-example}. Analyses are conducted for each of the three supported model types, illustrating approaches suitable for both patient-level and aggregate-level data. The cost-effectiveness framework is described in Section~\ref{sec:cea} along with worked examples based on the output from the prior section. Section~\ref{sec:discussion} discusses additional features not covered in this paper, makes comparisons to other software, and explores possible extensions. Finally, Section~\ref{sec:conclusion} concludes. 
 
-Analyses were performed using \pkg{hesim} version \code{0.5.0}.
+Analyses were performed using \pkg{hesim} version \code{0.5.0}. All code including a replication \proglang{R} script for this paper is available at \url{https://github.com/hesim-dev/hesim-manuscript}.
 
 %% -- Model taxonomy -----------------------------------------------------------
 \section{Model taxonomy} \label{sec:model-taxonomy}
@@ -351,7 +351,7 @@ We consider a three-state model commonly used in oncology. As shown in Figure~\r
 \caption{Three state model of disease progression in oncology}\label{fig:three-state-model}
 \end{figure}
 
-This model can be simulated using either of the model types described in Section~\ref{sec:model-taxonomy}. We demonstrate use of all three below, starting with the iCTSTM. 
+This model can be simulated using any of the model types described in Section~\ref{sec:model-taxonomy}. We demonstrate use of all three below, starting with the iCTSTM. 
 
 %% -- Individual continuous time state transition model ------------------------
 \subsection{Individual continuous time state transition model} \label{sec:ictstm-example}
@@ -367,7 +367,7 @@ colnames(tmat) <- rownames(tmat) <- c("Stable", "Progression", "Dead")
 print(tmat)
 @
 
-The target population, treatment strategies, and (non-death) health states are stored in a \code{hesim_data} object. There are 3 treatment strategies: standard of care (SOC) and two new interventions (New 1 and New 2). The target population consists of a heterogeneous population of 1,000 patients, which is large enough to ensure that averages across patients in the individual simulation are reasonably stable. As we will see in the next section, patients can also be placed into subgroups with a \code{grp_id} column in the \code{patients} table; if left unspecified as done here, then all patients are assumed to belong to a single subgroup.
+The target population, treatment strategies, and (non-death) health states are stored in a \code{hesim_data} object and identified with integer valued identification variables (\code{patient_id}, \code{strategy_id}, and \code{state_id}). There are 3 treatment strategies: standard of care (SOC) and two new interventions (New 1 and New 2). The target population consists of a heterogeneous population of 1,000 patients, which is large enough to ensure that averages across patients in the individual simulation are reasonably stable. As we will see in the next section, patients can also be placed into subgroups (with a \code{grp_id} column) or given weights (with a \code{patient_wt} column) in the \code{patients} table; if left unspecified as done here, then all patients are assumed to belong to a single subgroup and are weighted equally.
 
 <<hesim_data>>=
 library("hesim")
@@ -399,6 +399,8 @@ hesim_dat <- hesim_data(
 )
 print(hesim_dat)
 @
+
+Labels for the identification variables in a \code{hesim_data} object can be generated with \code{get_labels()}. These can (as will be shown below), in turn, be passed to plotting and summary functions to create tables and figures with more informative labels. 
 
 <<labels_indiv>>=
 labs_indiv <- get_labels(hesim_dat)
@@ -592,7 +594,7 @@ ictstm$sim_costs(dr = .03)
 head(ictstm$costs_)
 @
 
-For a given subgroup, QALYs and costs are simulated for each PSA sample, treatment strategy, and health state. They are summarized with the \code{$summarize()} method, which first sums across health states and then computes a (weighted) average across patients, by PSA sample, treatment strategy, and subgroup. The output is a generic cost-effectiveness object (of class \code{ce}) that can be used to perform CEA as demonstrated in Section~\ref{sec:cea}. Here, we use the \code{summary()} method to summarize the results and make use the ``pipes'' from the \pkg{magrittr} to nicely format the output. 
+For a given subgroup, QALYs and costs are simulated for each PSA sample, treatment strategy, and health state. They are summarized with the \code{$summarize()} method, which first sums across health states and then computes a (weighted) average across patients, by PSA sample, treatment strategy, and subgroup. The output is a generic cost-effectiveness object (of class \code{ce}) that can be used to perform CEA as demonstrated in Section~\ref{sec:cea}. Here, we use the \code{summary()} method to summarize the results and make use the ``pipes'' from the \pkg{magrittr} to nicely format the output. Labels for the treatment strategies are based on output of \code{get_labels()} produced above. 
 
 <<ictstm_summarize>>=
 library("magrittr")
@@ -618,6 +620,8 @@ hesim_dat$patients <- data.table(
                  each = 2)
 )
 @
+
+Since there are now subgroups, we generate new labels that include the subgroup variables.
 
 <<labels_cohort>>=
 labs_cohort <- get_labels(hesim_dat)
@@ -740,10 +744,10 @@ psm <- Psm$new(survival_models = survmods,
                cost_models = costmods)
 @
 
-We first simulate survival curves by month for 20 years. State probabilities are easily computed from these survival curves with the \code{sim_stateprobs()} method. The area under the PFS curve is the proportion of patients in stable disease while the area between the PFS and OS curves is the proportion of patient whose disease has progressed. 
+We first simulate survival curves by month for 30 years. State probabilities are easily computed from these survival curves with the \code{sim_stateprobs()} method. The area under the PFS curve is the proportion of patients in stable disease while the area between the PFS and OS curves is the proportion of patient whose disease has progressed. 
 
 <<psm_sim_survival>>=
-times <- seq(0, 20, by = .1)
+times <- seq(0, 30, by = .1)
 psm$sim_survival(t = times)
 head(psm$survival_)
 @
@@ -785,10 +789,10 @@ psm$sim_stateprobs()
 psm$stateprobs_[sample == 1 & patient_id == 1 & state_id == 2 & t == 12]
 @
 
-QALYs and costs are simulated using the same \code{sim_qalys()} and \code{sim_costs()} methods as in the previous section, and the results are summarized in the same fashion as well. 
+QALYs and costs are simulated using the same \code{sim_qalys()} and \code{sim_costs()} methods as in the previous section, and the results are summarized in the same fashion as well. A difference, however, is that we now use the \code{by_grp = TRUE} option to summarize costs and QALYs by subgroup (rather than aggregating across all groups). 
 
 <<psm_costs_qalys>>=
-psm$sim_qalys(dr = .03)
+psm$sim_qalys(dr = .03) 
 psm$sim_costs(dr = .03)
 @
 
@@ -861,7 +865,7 @@ params_rr_def <- define_rng({
 params_rr_rng <- eval_rng(params_rr_def, params_rr)
 @
 
-In Sections~\ref{sec:ictstm-example} and \ref{sec:psm-example}, we constructed the disease model using parameter (i.e., \code{params_surv}) objects. Here, we will use a transformed parameter (i.e., \code{tparams_transprobs}) object, which is a very flexible way to construct the transition probability matrices for a cDTSTM. A \code{tparams_transprobs} object requires a 3-dimensional array of transition matrices, sorted by PSA sample, treatment strategy, patient, and optionally (in a time-inhomogeneous model) time interval.
+In Sections~\ref{sec:ictstm-example} and \ref{sec:psm-example}, we constructed the disease model using parameter (i.e., \code{params_surv}) objects. Here, we will use a transformed parameter (i.e., \code{tparams_transprobs}) object, which is a very flexible way to construct the transition probability matrices for a cDTSTM. A \code{tparams_transprobs} object requires a 3-dimensional array of transition matrices, where the transition matrices are ordered by PSA sample, treatment strategy, patient, and optionally (in a time-inhomogeneous model) time interval.
 
 We start by predicting transition intensity matrices for SOC from the exponential multi-state model using the same input data used for the survival models in the PSM example. A prediction is made for each representative patient and samples of the transition intensity matrices are drawn for the PSA using an asymptotic normal approximation. The array contains $B \times N_p$ matrices where $B$ is the number of PSA samples and $N_p$ is the number of patients. 
 
@@ -882,7 +886,7 @@ pmat_soc <- expmat(qmat_soc, t = cycle_len)
 pmat_soc[,, 1]
 @
 
-Identifiers for each matrix in the array can then be generated with \code{tpmatrix_id()}.
+Identifiers for the complete array of transitions matrices (inclusive of SOC and the new interventions) are generated with \code{tpmatrix_id()}.
 
 <<transprobs_id>>=
 tpmat_id <- tpmatrix_id(transmod_data, n_samples)
@@ -901,6 +905,7 @@ We use this function to predict distributions of relative risks (for the transit
 x_rr <- as.matrix(transmod_data[, .(soc, new1, new2)])
 rr <- cbind(xbeta(x_rr, params_rr_rng$rr_12),
             xbeta(x_rr, params_rr_rng$rr_13))
+head(rr) # Corresponds to 1st 6 rows in tpmat_id
 @
 
 Relative risks are applied to the elements (stable $\rightarrow$ progression (1, 2) and stable $\rightarrow$ death (1, 3)) of each transition probability matrix for SOC with \code{apply_rr()}. The result is an array of matrices for each PSA sample, treatment strategy,  and representative patient, as desired. The \code{tparams_transprobs} object can then be created by simply combining the transition probability matrices and the identification dataset. 
@@ -955,7 +960,7 @@ cdtstm$sim_qalys(dr = .03)
 cdtstm$sim_costs(dr = .03)
 @
 
-and the results are summarized.
+and the results are summarized. The \code{by_grp} argument of \code{$summarize()} is by default \code{FALSE} so costs and QALYs are aggregated across subgroups here. 
 
 <<cdtstm_icer>>=
 ce_sim_cdtstm <- cdtstm$summarize()
@@ -1009,7 +1014,7 @@ cea_pw_ictstm <- cea_pw(ce_sim_ictstm, comparator = 1,
 @
 
 \subsubsection{Incremental cost-effectiveness ratio}
-The \code{cea_pw()} function computes the ICER. A summary table can be produced with \code{icer()} and \code{format()} can format the table for pretty printing. The argument \code{k} is the WTP threshold and is used to compute the INMB. Estimates of incremental QALYs and incremental costs are computed by averaging over PSA samples. By default, 95\% confidence intervals are presented and are computed using quantiles from the PSA.
+The \code{cea_pw()} function computes the ICER. A summary table is produced with \code{icer()} and \code{format()} formats the table for pretty printing. The argument \code{k} is the WTP threshold and is used to compute the INMB. Estimates of incremental QALYs and incremental costs are computed by averaging over PSA samples. By default, 95\% confidence intervals are presented and are computed using quantiles from the PSA.
 
 <<cea_icer>>=
 icer(cea_pw_ictstm, k = 100000, labels = labs_indiv) %>%
@@ -1017,7 +1022,7 @@ icer(cea_pw_ictstm, k = 100000, labels = labs_indiv) %>%
 @
 
 \subsubsection{Representing decision uncertainty}
-A number of common measures can be used to represent decision uncertainty from a CEA, including cost-effectiveness planes, cost-effectiveness acceptability curves (CEAC), cost-effectiveness acceptability frontiers (CEAF), and the expected value of perfect information (EVPI). Plots can be quickly generated with \code{plot_ceplane()}, \code{plot_ceac()}, \code{plot_ceaf()}, and \code{plot_evpi()} functions, respectively. Example plots from the code that follows are shown in Figure~\ref{fig:cea-plots}
+A number of common measures can be used to represent decision uncertainty from a CEA, including cost-effectiveness planes, cost-effectiveness acceptability curves (CEAC), cost-effectiveness acceptability frontiers (CEAF), and the expected value of perfect information (EVPI). Plots using \pkg{ggplot2} graphics can be quickly generated with the \code{plot_ceplane()}, \code{plot_ceac()}, \code{plot_ceaf()}, and \code{plot_evpi()} functions, respectively \citep{wickham2016ggplot2}. Output from \code{cea()} and \code{cea_pw()} is readily available, so users may create custom plots as well. Example figures from the code that follows are shown in Figure~\ref{fig:cea-plots}.
 
 \begin{figure}[t!]
 \centering
@@ -1069,9 +1074,7 @@ plot_ceac(cea_ictstm, labels = labs_indiv)
 plot_ceac(cea_pw_ictstm, labels = labs_indiv)
 @
 
-One drawback of the CEAC is that the probability of being cost-effective cannot be used to determine the optimal treatment option. Instead, if the objective is to maximize health gain, then decisions should be based on the expected NMB. The CEAF, which plots the probability that the optimal treatment strategy (i.e., the strategy with the highest expected NMB) is cost-effective, is appropriate in this context. 
-
-A CEAF curve can be created by using the \code{best} column from the \code{mce} element to subset to the treatment strategy with the highest expected NMB for each WTP value.
+One drawback of the CEAC is that the probability of being cost-effective cannot be used to determine the optimal treatment option. Instead, if the objective is to maximize health gain, then decisions should be based on the expected NMB. The CEAF, which plots the probability that the optimal treatment strategy (i.e., the strategy with the highest expected NMB) is cost-effective, is appropriate in this context. A CEAF curve can be created by using the \code{best} column from the \code{mce} element to subset to the treatment strategy with the highest expected NMB for each WTP value.
 
 <<ceaf, fig.height = 3, fig.width = 4.5, fig.show = "hide">>=
 plot_ceaf(cea_ictstm, labels = labs_indiv)
@@ -1095,7 +1098,7 @@ This paper formally describes the economic models and cost-effectiveness framewo
 
 One notable set of features not covered relates to the construction of transition probability matrices, the core of any cDTSTM. In Section~\ref{sec:cdtstm-example}, an approach was used that was tailored to a case in which transition intensity matrices were available for a reference treatment and relative treatment effects (i.e., relative risks) were available for the remaining competing interventions. To maximize efficiency, the matrix exponential was only applied where necessary (for SOC) and relative risks were applied to the transition probability matrices for SOC with the efficient \code{apply_rr()} function. 
 
-Alternative approaches might be appropriate in other contexts. For example, if evenly spaced panel data is available, a multinomial logistic regressions can be used to predict transition probabilities. On the other hand, some users may prefer a functional approach that is arguably more human readable. To facilitate this type of analysis, a \code{define_model()} block can be used to construct transition probability matrices using nonstandard evaluation. Each possible combination of the parameters and input data (treatment strategies and patients) is automatically constructed and the user can write custom expressions that create the transition probability matrices as a function of the parameters and input data. The same \code{define_model()} block may also be used to construct utility and cost models, if desired. Example that leverage multinomial logistic regression and \code{define_model()} are provided on the package website. The latter is used to reproduce two examples (a simple Markov cohort model of an HIV treatment and a time-inhomogeneous Markov cohort model of total hip replacement) from the reference textbook by \citet{briggs2006decision}.
+Alternative approaches might be appropriate in other contexts. For example, if evenly spaced panel data is available, a multinomial logistic regressions can be used to predict transition probabilities. On the other hand, some users may prefer a functional approach that is arguably more human readable. To facilitate this type of analysis, a \code{define_model()} block can be used to construct transition probability matrices using nonstandard evaluation. Each possible combination of the parameters and input data (treatment strategies and patients) is automatically constructed and the user can write custom expressions that create the transition probability matrices as a function of the parameters and input data. The same \code{define_model()} block may also be used to construct utility and cost models, if desired. Examples that leverage multinomial logistic regression and \code{define_model()} are provided on the package website. The latter is used to reproduce two examples (a simple Markov cohort model of an HIV treatment and a time-inhomogeneous Markov cohort model of total hip replacement) from the reference textbook by \citet{briggs2006decision}.
 
 In Section~\ref{sec:ictstm-example}, we fit a clock-reset multi-state model and simulated outcomes with an individual-level simulation. An iCTSTM can, however, also be developed without fitting a statistical model using \proglang{R} by manually inputting the arguments (e.g., coefficients, probability distributions) of \code{params_surv} objects for each possible transition. If IPD is available for the reference treatment, \code{create_params()} can be use to obtain the baseline \code{params_surv} object from a fitted multi-state model, and relative treatment effects (e.g., hazard ratios) could be added as additional columns to the coefficients stored in the \code{params_surv} object. A similar approach was used in the partitioned survival analysis example above (Section~\ref{sec:psm-example}). A re-analysis of the total hip replacement model from the \citet{briggs2006decision} textbook using an individual-level simulation is provided on the package website to illustrate. 
 
@@ -1105,13 +1108,13 @@ As mentioned in the introduction, \code{heemod} is the only other general purpos
 
 There are a number of multi-state modeling \proglang{R} packages that can both fit models and make predictions. \pkg{hesim} leverages some of these for parameters estimation: \pkg{flexsurv} is used to fit parametric and flexible parametric survival and multi-state models when exact event times are available while \pkg{msm} is used to fit multi-state models when only panel data is available. A key difference is that \pkg{hesim} is designed specifically for health-economic modeling whereas the other packages are more general purpose statistical packages. 
 
-\pkg{mstate} is another package for multi-state modeling that is designed for estimation of non-parametric and semi-parametric (i.e., Cox proportional hazards) models. It supports prediction of state probabilities and simulation of multi-state trajectories (to facilitate prediction for clock-reset models) from cumulative hazard functions evaluated at specific times. \citet{williams2017cost} has adapted \pkg{mstate} for cost-effectiveness modeling applications. There are however, some disadvantages of using \pkg{mstate} for health-economic modeling since it was not designed for it. \code{mssample()}---the core function for simulating multi-state models---does not natively support heterogeneous target populations, PSA, simultaneous simulation of multiple treatment strategies, or computation of QALYs and costs from the simulated output. It is also computationally inefficient for two main reasons. First, simulation of general cumulative hazards functions is considerably slower than simulation of parametric distributions where efficient random number generators are available. Second, it is written completely in \proglang{R} and incorporating PSA, multiple treatment strategies, or heterogeneous patients results in code that is not vectorized. To compare computational performance, we ran 100 PSA iterations where 1 treatment strategy and 1,000 homogeneous patients were simulated through a 6-state Weibull model during each iteration. The model completed in 0.44 second in \pkg{hesim} and took 34 minutes in \pkg{mstate}, showing that computational considerations are not just an academic concern. 
+\pkg{mstate} is another package for multi-state modeling that is designed for estimation of non-parametric and semi-parametric (i.e., Cox proportional hazards) models \citep{de2011mstate}. It supports prediction of state probabilities and simulation of multi-state trajectories (to facilitate prediction for clock-reset models) from cumulative hazard functions evaluated at specific times. \citet{williams2017cost} has adapted \pkg{mstate} for cost-effectiveness modeling applications. There are however, some disadvantages of using \pkg{mstate} for health economic modeling since it was not designed for it. \code{mssample()}---the core function for simulating multi-state models---does not natively support heterogeneous target populations, PSA, simultaneous simulation of multiple treatment strategies, or computation of QALYs and costs from the simulated output. It is less computationally efficient than \pkg{hesim} for two main reasons. First, simulation of general cumulative hazards functions is considerably slower than simulation of parametric distributions where efficient random number generators are available. Second, it is written completely in \proglang{R} and incorporating PSA, multiple treatment strategies, or heterogeneous patients results in code that is not vectorized. To compare computational performance, we ran 100 PSA iterations where 1 treatment strategy and 1,000 homogeneous patients were simulated through a 6-state Weibull model during each iteration. The model completed in 0.44 second in \pkg{hesim} and took 34 minutes in \pkg{mstate}, showing that computational considerations are not just an academic concern. 
 
 A number of extensions of the current version of \pkg{hesim} would be helpful. First, we plan to extend the individual-level simulation so that users can update input data during the simulation as a function of time elapsed and/or the health states transitioned to. This would allow potentially time-varying variables such as age to update each time a patient transitions to a new state. Second, we would like to add more examples to ensure that \pkg{hesim} is fit for purpose for a wide range of applications in health economics. Third, more complex models of utility \citep{kharroubi2007modelling, hernandez2013relationship} and costs \citep{nixon2005methods} could help better capture heterogeneity in preferences and spending. Fourth, it would be useful to add functionality that automatically creates tunnel states for users in cDTSTMs. Finally, a larger aspiration is to provide support for parameterization via NMA, particularly for estimation of relative treatment effects in survival (e.g., for PSMs) and multi-state models. However, since existing \proglang{R} packages are lacking in this area, this could involve creation of a separate NMA package and a new dependency for \pkg{hesim}. 
 
 %% -- Conclusion ---------------------------------------------------------------
 \section{Conclusion} \label{sec:conclusion}
-\pkg{hesim} is a modular and computationally efficient \proglang{R} package for development and analysis of simulation models for economic evaluation. Discrete time cohort and continuous time individual-level models are supported, encompassing Markov (time-homogeneous and time-inhomogeneous) and semi-Markov processes as well as partitioned survival analysis. To facilitate integration of statistical methods and economic models and use of both patient- and aggregate-level data, parameters can be estimated by fitting a statistical model with \proglang{R}, inputting parameter estimates from an external source, or a combination of the two. Simulated costs and QALYs from a PSA can be used for for decision-analysis within a cost-effectiveness framework, allowing users to represent decision uncertainty (e.g., cost-effectiveness planes, cost-effectiveness acceptability curves, and cost-effectiveness acceptability frontiers), and conduct value of information analysis. Algorithms are efficiently coded and written in \proglang{C++} so that approaches that have been considered computationally intensive such as individual-level simulations and PSA can run very quickly. The modular design makes modeling more flexible and it straightforward to add new features. 
+\pkg{hesim} is a modular and computationally efficient \proglang{R} package for development and analysis of simulation models for economic evaluation. Discrete time cohort and continuous time individual-level models are supported, encompassing Markov (time-homogeneous and time-inhomogeneous) and semi-Markov processes as well as partitioned survival analysis. To facilitate integration of statistical methods and economic models and use of both patient- and aggregate-level data, parameters can be estimated by fitting a statistical model with \proglang{R}, inputting parameter estimates from an external source, or a combination of the two. Simulated costs and QALYs from a PSA can be used for for decision-analysis within a cost-effectiveness framework, allowing users to represent decision uncertainty (e.g., cost-effectiveness planes, cost-effectiveness acceptability curves, and cost-effectiveness acceptability frontiers), and conduct value of information analysis. Algorithms are efficiently coded and written in \proglang{C++} so that approaches that have been considered computationally intensive such as individual-level simulations and PSA can run very quickly. The modular design makes modeling more flexible and it easier to add new features. 
 
 %% -- Bibliography -------------------------------------------------------------
 %% - References need to be provided in a .bib BibTeX database.
