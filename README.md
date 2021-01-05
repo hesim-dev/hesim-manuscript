@@ -10,11 +10,11 @@ Package dependencies are manged with the [`renv`](https://rstudio.github.io/renv
 renv::restore()
 ```
 
-The PDF version of the manuscript can be compiled by running;
+The PDF version of the manuscript can be compiled by running:
 
 ```{r}
 knitr::knit2pdf(input = "manuscript.rnw", output = "manuscript.tex",
                 compiler = "pdflatex")
 ```
 
-You may alternatively use the "Compile PDF" button within RStudio after modifying *Project Options -> Sweave* so that you weave PDF files with knitr and typeset LaTEeX into PDF with pdfLaTeX (you may also modify the *Global Options*).
+You may alternatively use the "Compile PDF" button within RStudio after modifying *Project Options -> Sweave* so that you weave PDF files with knitr and typeset LaTeX into PDF with pdfLaTeX (you may also modify the *Global Options*).
