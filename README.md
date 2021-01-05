@@ -1,4 +1,4 @@
-This repository contains the code, text, and results for the manuscript describing the [`hesim`](https://hesim-dev.github.io/hesim/) R package. A replication file titled `manuscript.R` can be obtained with: 
+This repository contains the code, text, and results for the manuscript describing the [`hesim`](https://hesim-dev.github.io/hesim/) `R` package. A replication file titled `manuscript.R` can be obtained with: 
 
 ```r
 knitr::purl(input = "manuscript.rnw", output = "manuscript.R")
