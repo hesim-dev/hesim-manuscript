@@ -286,7 +286,7 @@ State values (i.e., costs and utilities) do not depend on the choice of disease 
 \hline
 Statistical model & Parameter object & Model object\\
 \hline
-Predicted means & \code{tparams_mean} & \code{stateval_tbl::lm}\\
+Predicted means & \code{tparams_mean} & \code{stateval_tbl}\\
 Linear model & \code{params_lm} & \code{stats::lm}\\
 \hline
 \end{tabular*}
