@@ -272,7 +272,7 @@ Economic model & Statistical model & Parameter object & Model object\\
 \end{tabular*}
 \end{table}
 
-The parameters of a survival model are stored in a \code{params_surv} object and a \code{params_surv_list} can be used to store the parameters of multiple survival models. The latter is useful for storing the parameters of a multi-state model or the independent survival models required for a PSM. The parameters of a multinomial logistic regression are stored in a \code{params_mlogit} and can be created by fitting a model for each row in a transition probability matrix with \code{nnet::multinom()}.
+The parameters of a survival model are stored in a \code{params_surv} object and a \code{params_surv_list} can be used to store the parameters of multiple survival models. The latter is useful for storing the parameters of a multi-state model or the independent survival models required for a PSM. The parameters of a multinomial logistic regression are stored in a \code{params_mlogit} object and can be created by fitting a model for each row in a transition probability matrix with \code{nnet::multinom()}.
 
 \code{tparams_transprobs} objects store transition probability matrices that have been predicted for each PSA sample, treatment strategy, patient from the target population, and optionally time interval (to allow for time inhomogeneous Markov models). Transition probabilities can be predicted from a fitted multi-state model using the \pkg{msm} package or constructed ``by hand'' in a custom manner. 
 
