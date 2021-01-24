@@ -292,7 +292,7 @@ Linear model & \code{params_lm} & \code{stats::lm}\\
 \end{tabular*}
 \end{table}
 
-The most straightforward way to construct state values is with a \code{stateval_tbl}, which is a special object used to assign values (i.e. predicted means) to health states that can vary across PSA samples, treatment strategies, patients, and/or time intervals. State values can be specified either as moments (e.g., mean and standard error) or parameters (e.g., shape and scale of gamma distribution) of a probability distribution, or by pre-simulating values from a suitable probability distribution (e.g., from a Bayesian model).
+The most straightforward way to construct state values is with \code{stateval_tbl}, which is a special object used to assign values (i.e. predicted means) to health states that can vary across PSA samples, treatment strategies, patients, and/or time intervals. State values can be specified either as moments (e.g., mean and standard error) or parameters (e.g., shape and scale of gamma distribution) of a probability distribution, or by pre-simulating values from a suitable probability distribution (e.g., from a Bayesian model).
 
 \subsection{Simulation} \label{sec:simulation}
 The utility and cost models are always \pkg{R6} objects of class \code{StateVals}, whereas the disease models vary by economic model (Table~\ref{tbl:submodels}). The disease model is used to simulate survival curves in a PSM and health state transitions in a cDTSTM and iCTSTM.
@@ -544,39 +544,15 @@ ictstm$sim_stateprobs(t = seq(0, 30 , 1/12))
 head(ictstm$stateprobs_)
 @
 
-<<ictstm_summarize_stateprobs, echo=FALSE, results="hide">>=
-add_state_name <- function(x){
-  x[, state_name := factor(state_id,
-                           levels = 1:nrow(tmat),
-                           labels = colnames(tmat))]
-}
+\code{autoplot()} methods are available to quickly visualize simulation output using \pkg{ggplot2} graphics \citep{wickham2016ggplot2}. State probabilities from such a plot are shown in Figure~\ref{fig:ictstm-stprobs}, with labels for the treatment strategies and health states based on the output of \code{get_labels()} produced above.
 
-add_strategy_name <- function(x) {
-  x[, strategy_name := factor(strategy_id, 
-                              labels = c("SOC", "New 1", "New 2"))]
-}
-
-summarize_stprobs <- function(stateprobs){
-  x <- stateprobs[, .(prob_mean = mean(prob)),
-                  by = c("strategy_id", "state_id", "t")]
-  add_state_name(x)
-  add_strategy_name(x)
-  return(x[, ])
-}
-@
-
-<<ictstm_plot_stateprobs, echo = FALSE, include = FALSE>>=
+<<ictstm_plot_stateprobs, fig.show = "hide">>=
 library("ggplot2")
-stprobs <- summarize_stprobs(ictstm$stateprobs_)
-ggplot(stprobs, 
-       aes(x = t, y = prob_mean, col = strategy_name)) +
-  geom_line() + facet_wrap(~state_name) +
-  xlab("Years") + ylab("Probability in health state") +
-  scale_color_discrete(name = "Strategy") +
-  theme(legend.position = "bottom") 
+autoplot(ictstm$stateprobs_, labels = labs_indiv,
+         ci = FALSE) 
 @
 
-\begin{figure}[t!]
+\begin{figure}[h]
 \centering
 \includegraphics{figure/ictstm_plot_stateprobs-1.pdf}
 \caption{Mean simulated state probabilities from the probabilistic sensitivity analysis} \label{fig:ictstm-stprobs}
@@ -594,7 +570,7 @@ ictstm$sim_costs(dr = .03)
 head(ictstm$costs_)
 @
 
-For a given subgroup, QALYs and costs are simulated for each PSA sample, treatment strategy, and health state. They are summarized with the \code{$summarize()} method, which first sums across health states and then computes a (weighted) average across patients, by PSA sample, treatment strategy, and subgroup. The output is a generic cost-effectiveness object (of class \code{ce}) that can be used to perform CEA as demonstrated in Section~\ref{sec:cea}. Here, we use the \code{summary()} method to summarize the results and make use the ``pipes'' from the \pkg{magrittr} to nicely format the output. Labels for the treatment strategies are based on output of \code{get_labels()} produced above. 
+For a given subgroup, QALYs and costs are simulated for each PSA sample, treatment strategy, and health state. They are summarized with the \code{$summarize()} method, which first sums across health states and then computes a (weighted) average across patients, by PSA sample, treatment strategy, and subgroup. The output is a generic cost-effectiveness object (of class \code{ce}) that can be used to perform CEA as demonstrated in Section~\ref{sec:cea}. Here, we use the \code{summary()} method to summarize the results and make use the ``pipes'' from the \pkg{magrittr} to nicely format the output. 
 
 <<ictstm_summarize>>=
 library("magrittr")
@@ -744,7 +720,7 @@ psm <- Psm$new(survival_models = survmods,
                cost_models = costmods)
 @
 
-We first simulate survival curves by month for 30 years. State probabilities are easily computed from these survival curves with the \code{sim_stateprobs()} method. The area under the PFS curve is the proportion of patients in stable disease while the area between the PFS and OS curves is the proportion of patient whose disease has progressed. 
+We first simulate survival curves by month for 30 years. Survival curves produced using an \code{autoplot()} method are displayed in Figure~\ref{fig:psm-survival}. 
 
 <<psm_sim_survival>>=
 times <- seq(0, 30, by = .1)
@@ -752,37 +728,21 @@ psm$sim_survival(t = times)
 head(psm$survival_)
 @
 
-<<psm_plot_survival, echo = FALSE, include = FALSE>>=
-# Survival curve plotting data
-surv_means <- psm$survival_[, lapply(.SD, weighted.mean, w = patient_wt),
-                                by = c("strategy_id", "curve", "t"),
-                               .SDcols = "survival"]
-surv_mean_min <- surv_means[curve != 2][, curve := curve + 1]
-setnames(surv_mean_min, "survival", "survival_min")
-surv_means <- merge(surv_means, surv_mean_min,
-                    by = c("strategy_id", "curve", "t"),
-                    all.x = TRUE)
-surv_means[, survival_min := ifelse(curve == 1, 0, survival_min)]
-surv_means[, curve := factor(curve, labels = c("PFS", "OS"))]
-surv_means[, strategy_name := factor(strategy_id, labels = c("SOC", "New 1", "New 2"))]
-
-# Plot
-ggplot(surv_means, aes(x = t, y = survival, fill = curve)) +
-  geom_line(aes(col = curve)) +
-  facet_wrap(~strategy_name) +
-  geom_ribbon(aes(ymin = survival_min, ymax = survival), alpha = .5) +
-  xlab("Years") + ylab("Proportion surviving") +
-  scale_color_discrete(name = "Survival curve") +
-  guides(fill = FALSE) +
-  theme_bw() +
-  theme(legend.position = "bottom") 
+<<psm_plot_survival, fig.show = "hide">>=
+autoplot(psm$survival_, 
+         labels = c(labs_cohort,
+                    list(curve = c("PFS" = 1, "OS" = 2))
+                    ),
+         ci = TRUE, ci_style = "ribbon")
 @
 
-\begin{figure}[t!]
+\begin{figure}[h]
 \centering
 \includegraphics{figure/psm_plot_survival-1.pdf}
-\caption{Mean progression free survival and overall survival, weighted by the weight given to each patient in the target population. Solid and dotted lines represent means and 95\% confidence intervals from the probabilistic sensitivity analysis, respectively.} \label{fig:psm-survival}
+\caption{Mean progression free survival and overall survival, weighted by the weight given to each patient in the target population. The solid line and shaded regions represent means and 95\% confidence intervals from the probabilistic sensitivity analysis, respectively.} \label{fig:psm-survival}
 \end{figure}
+
+State probabilities are easily computed from these survival curves with the \code{$sim_stateprobs()} method. The area under the PFS curve is the proportion of patients in stable disease while the area between the PFS and OS curves is the proportion of patient whose disease has progressed.
 
 <<psm_sim_stateprobs>>=
 psm$sim_stateprobs()
@@ -939,20 +899,6 @@ We simulate state probabilities for 120 cycles (i.e., 30 years).
 cdtstm$sim_stateprobs(n_cycles = 30/cycle_len)
 @
 
-<<cdtstm_plot_stateprobs, echo = FALSE, include = FALSE>>=
-stprobs_tot <- cdtstm$stateprobs_[, lapply(.SD, weighted.mean, w = patient_wt),
-                                   by = c("sample", "strategy_id", "state_id", "t"),
-                                   .SDcols = "prob"]
-stprobs_summary <- summarize_stprobs(stprobs_tot)
-ggplot(stprobs_summary, aes(x = t, y = prob_mean)) +
-  geom_line(aes(col = strategy_name)) +
-  # geom_ribbon(aes(x = t, ymin = prob_lower, ymax = prob_upper,
-  #                 fill = strategy_name), alpha = .3) +
-  facet_wrap(~state_name) +
-  xlab("Year") + ylab("Probability") +
-  scale_fill_discrete("Strategy") + scale_color_discrete("Strategy")
-@
-
 QALYs and costs are again simulated using a 3 percent discount rate
 
 <<cdtstm_sim_qalys_costs>>=
@@ -1022,7 +968,7 @@ icer(cea_pw_ictstm, k = 100000, labels = labs_indiv) %>%
 @
 
 \subsubsection{Representing decision uncertainty}
-A number of common measures can be used to represent decision uncertainty from a CEA, including cost-effectiveness planes, cost-effectiveness acceptability curves (CEAC), cost-effectiveness acceptability frontiers (CEAF), and the expected value of perfect information (EVPI). Plots using \pkg{ggplot2} graphics can be quickly generated with the \code{plot_ceplane()}, \code{plot_ceac()}, \code{plot_ceaf()}, and \code{plot_evpi()} functions, respectively \citep{wickham2016ggplot2}. Output from \code{cea()} and \code{cea_pw()} is readily available, so users may create custom plots as well. Example figures from the code that follows are shown in Figure~\ref{fig:cea-plots}.
+A number of common measures can be used to represent decision uncertainty from a CEA, including cost-effectiveness planes, cost-effectiveness acceptability curves (CEAC), cost-effectiveness acceptability frontiers (CEAF), and the expected value of perfect information (EVPI). Plots using \pkg{ggplot2} can be quickly generated with the \code{plot_ceplane()}, \code{plot_ceac()}, \code{plot_ceaf()}, and \code{plot_evpi()} functions, respectively. Output from \code{cea()} and \code{cea_pw()} is readily available, so users may create custom plots as well. Example figures from the code that follows are shown in Figure~\ref{fig:cea-plots}.
 
 \begin{figure}[t!]
 \centering
