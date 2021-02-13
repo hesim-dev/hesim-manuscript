@@ -522,7 +522,7 @@ costmods <- list(Drug = drugcostmod,
                  Medical = medcostmod)
 @
 
-The complete economic model is a constructed by combining the transition, utility, and cost submodels.
+The complete economic model is constructed by combining the transition, utility, and cost submodels.
 
 <<ictstm_econmod>>=
 ictstm <- IndivCtstm$new(trans_model = transmod,
