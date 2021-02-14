@@ -106,7 +106,7 @@ Health technology assessment (HTA) is a systematic approach for comparing compet
 
 The most commonly used economic models are Markov state transition models (STMs) that simulate transitions between mutually exclusive health states. When the Markov assumption holds so that transition probabilities are either constant over time or depend only on model time, a cohort-level model can be used \citep{briggs1998introduction}. If the Markov assumption is relaxed---e.g., with a semi-Markov model so that transition probabilities depend on time in an intermediate health state---then individual-level models are required in most cases \citep{brennan2006taxonomy, fiocco2008reduced}. Individual-level models afford considerably more flexibility and allow patient history to be tracked over time.
 
-Decisions informed by economic models and CEA are subject to uncertainty. One source of decision uncertainty stems from uncertainty in the underlying model parameters. Parameter uncertainty is typically quantified using probabilistic sensitivity analysis (PSA), which involves randomly sampling the model parameters from suitable probability distribution and simulating the model for each sampled parameter set \citep{claxton2005probabilistic}. When combined with individual-level simulation, PSA can take an appreciable amount of time to run \citep{ohagan2007monte}.
+Decisions informed by economic models and CEA are subject to uncertainty. One source of decision uncertainty stems from uncertainty in the underlying model parameters. Parameter uncertainty is typically quantified using probabilistic sensitivity analysis (PSA), which involves randomly sampling the model parameters from suitable probability distributions and simulating the model for each sampled parameter set \citep{claxton2005probabilistic}. When combined with individual-level simulation, PSA can take an appreciable amount of time to run \citep{ohagan2007monte}.
 
 Estimation of model parameters should ideally be performed using statistical models that are aligned with the structure of the economic model. For instance, when patient-level data is available, a multi-state model can be used to parameterize all possible transitions in a STM while accounting for censoring and competing risks \citep{williams2017cost}. Similarly, in oncology, partitioned survival models (PSMs) can be parameterized from estimates of progression-free survival (PFS) and overall survival (OS). In other cases, parameters might be combined from disparate sources, such as within a single Bayesian model \citep{baio2012bayesian}. When the clinical evidence base is not limited to a single study, a formal evidence synthesis, such as a network-meta analysis (NMA), might even be performed \citep{dias2018network}.
 
@@ -127,7 +127,7 @@ Markov and semi-Markov models can be formulated in either continuous or discrete
 PSMs are specialized models that can be parameterized using survival curves and are especially useful in oncology where PFS and OS are commonly reported. They are ``area under the curve'' models, although they can also be formulated as STMs by using the survival curves to construct transition probabilities. 
 
 \subsection{Cohort discrete time state transition models} \label{sec:cDTSTMs}
-cDTSTMs simulate the probability that a cohort of patients is in each of $H$ health states over time. Time is partitioned into intervals $\{[0, t_1), [t_1, t_2), \ldots, [t_C, t_{C+1})\}$ with each interval $0,\ldots, C$ reffered to as a model cycle. We denote $t_c$ as the time at the start of model cycle $c$. An $H \times 1$ state vector that stores the probability of being in each health state at cycle $c$ is written as $x_c = (x_{1c}, x_{2c}, \ldots, x_{Hc})$ where $\sum_h x_{hc} = 1$. A transition probability matrix is an $H \times H$ matrix denoted by $P_c$ where the $(r,s)$th element represents a transition from state $r$ to state $s$ between model cycles $c$ and $c+1$. The state vector at cycle $c+1$ for each of $C$ model cycles is given by,
+cDTSTMs simulate the probability that a cohort of patients is in each of $H$ health states over time. Time is partitioned into intervals $\{[0, t_1), [t_1, t_2), \ldots, [t_C, t_{C+1})\}$ with each interval $0,\ldots, C$ referred to as a model cycle. We denote $t_c$ as the time at the start of model cycle $c$. An $H \times 1$ state vector that stores the probability of being in each health state at cycle $c$ is written as $x_c = (x_{1c}, x_{2c}, \ldots, x_{Hc})$ where $\sum_h x_{hc} = 1$. A transition probability matrix is an $H \times H$ matrix denoted by $P_c$ where the $(r,s)$th element represents a transition from state $r$ to state $s$ between model cycles $c$ and $c+1$. The state vector at cycle $c+1$ for each of $C$ model cycles is given by,
 
 \begin{equation} \label{eqn:markov-sim}
 x_{c+1}^T= x_c^T P_c, \quad c = 0,\ldots, C.
@@ -485,7 +485,7 @@ print(drugcost_tbl)
 Before constructing each submodel, we specify the number of parameter samples that will be drawn for the PSA.
 
 <<ictstm_n_samples>>=
-n_samples <- 100
+n_samples <- 1000
 @
 
 The input data for the transition model consists of one row for each treatment strategy and patient and can be easily generated from a \code{hesim_data} object with the \code{expand} function.
@@ -682,9 +682,10 @@ head(survmods_data)
 
 Since we did not fit a survival regression model containing both the absolute and relative treatment effects, we must construct the survival parameter object manually. We obtain the parameters of the fitted Weibull regression models with the generic function \code{create_params()}, and then manually add the relative treatment effects to the coefficients for the scale parameters. (Note that if we had not fit a model for SOC, the survival parameter objects could have still been constructed with \code{params_surv()}.)
 
-<<psm_survmods_params>>=
+<<psm_survmods_params, warning = FALSE>>=
 survmods_params <- create_params(psmfit_soc_wei, n = n_samples, 
-                                 uncertainty = "normal")
+                                 uncertainty = "bootstrap", 
+                                 max_errors = 5, silent = TRUE)
 survmods_params$pfs$coefs$scale <- cbind(survmods_params$pfs$coefs$scale,
                                          coef_pfs_wei)
 survmods_params$os$coefs$scale <- cbind(survmods_params$os$coefs$scale,
