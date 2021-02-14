@@ -79,7 +79,7 @@ Health economic models simulate the costs and effects of health technologies for
   South San Francisco\\
   E-mail: \email{incerti.devin@gene.com}\\
   
-  Jeroen Jansen\\
+  Jeroen P Jansen\\
   University of California, San Francisco\\
   San Francisco\\
   E-mail: \email{jeroen.jansen@ucsf.edu}\\
@@ -102,7 +102,7 @@ Health economic models simulate the costs and effects of health technologies for
 %%   "generalized linear models" below).
 
 \section{Introduction} \label{sec:intro}
-Health technology assessment (HTA) is a systematic approach for comparing competing health technologies to inform the efficient use of health care resources. Publicly funded health systems such as those in Australia, Canada, and the United Kingdom, among others, use HTA to help maximize health gains for the population given a fixed budget. HTA is also commonly used by private payers to guide coverage decisions and the adoption of new technologies \citep{trosman2011health}. Such assessments usually rely heavily on cost-effectiveness analysis (CEA) so that decisions can be made on the basis of a formal evaluation of costs and effects \citep{dakin2015influence}. CEA is made feasible by development of health economic models that simulate costs and effects over relevant time horizons using the totality of available evidence. 
+Health technology assessment (HTA) is a systematic approach for comparing competing health technologies to inform the efficient use of health care resources. Publicly funded health systems such as those in Australia, Canada, and the United Kingdom, among others, use HTA to help maximize health gains for the population given a fixed budget. HTA is also used by private payers to guide coverage decisions and the adoption of new technologies \citep{trosman2011health}. Such assessments usually rely heavily on cost-effectiveness analysis (CEA) so that decisions can be made on the basis of a formal evaluation of costs and effects \citep{dakin2015influence}. CEA is made feasible by development of health economic models that simulate costs and effects over relevant time horizons for the compared health technologies using the totality of relevant evidence for the decision problem at hand. 
 
 The most commonly used economic models are Markov state transition models (STMs) that simulate transitions between mutually exclusive health states. When the Markov assumption holds so that transition probabilities are either constant over time or depend only on model time, a cohort-level model can be used \citep{briggs1998introduction}. If the Markov assumption is relaxed---e.g., with a semi-Markov model so that transition probabilities depend on time in an intermediate health state---then individual-level models are required in most cases \citep{brennan2006taxonomy, fiocco2008reduced}. Individual-level models afford considerably more flexibility and allow patient history to be tracked over time.
 
@@ -147,7 +147,7 @@ P_c = \textrm{Exp}(uQ_c).
 
 Costs and QALYs are computed by assigning (potentially time-varying) values to each health state. Utility, a measure of preference for a health state that normally ranges from $0$ (dead) to $1$ (perfect health), is used when computing QALYs \citep{torrance1986measurement}. Assuming model time is in years, state values for costs are estimated by annualizing costs. In a Markov model, state values, like transition probabilities, can depend on time since the start of the model but not on time since entering an intermediate health state.
 
-Expected values are computed by integrating the ``weighted'' probability of being in each state, where weights are a function of the discount factor and state values. That is, for a time horizon $T$, discounted costs and QALYs in health state h are computed as,
+Expected values are computed by integrating the probability of being in each state and ``weighted'' state values, where weights are a function of the discount factor. That is, for a time horizon $T$, discounted costs and QALYs in health state h are computed as,
 
 \begin{equation} \label{eqn:cohort-costs-qalys}
 \int_0^{T} z_h(t) e^{-rt} p_h(t) dt,
@@ -164,7 +164,7 @@ In discrete time, the integral is approximated with
 where $\Delta t_c = t_{c+1} - t_{c}$,  $t_c^{*}\in[t_{c},t_{c+1}]$, and $f(t)= z_h(t) e^{-rt} p_h(t)$. Three methods can be used to estimate $f(t_c^{*})$. First, a left Riemann sum uses values at the start of each time interval $f(t_c^{*}) = f(t_c)$. Second, a right Riemann sum uses values at the end of each time interval $f(t_c^{*}) = f(t_{c+1})$. Finally, the trapezoid rule averages values at the start and end of each interval $f(t_c^{*}) = \frac{1}{2}\Delta t_c[f(t_c) + f(t_{c+1})]$. 
 
 \subsection{Individual continuous time state transition models} \label{sec:iCTSTMs}
-iCTSTMs simulate individual trajectories between health states using random number generation. Trajectories are simulated for multiple patients and costs and QALYs are computed by averaging across the simulated patients. A reasonably large number of patients must be simulated to ensure that expected values are stable \citep{ohagan2007monte}. 
+iCTSTMs simulate individual trajectories between health states using random number generation. Trajectories are simulated for multiple patients and expected costs and QALYs are computed by averaging across the simulated patients. A reasonably large number of patients must be simulated to ensure that expected values are stable \citep{ohagan2007monte}. 
 
 In continuous time, a patient is in state $X(t)$ at time $t$. State transitions are modeled using a multi-state modeling framework \citep{putter2007tutorial} where the probability of a transition from state $r$ to state $s$ is governed by the hazard function from Equation~\ref{eqn:hazard}.
 
@@ -204,7 +204,7 @@ PSMs are conceptually similar to STMs in that they are characterized by mutually
 
 In an $N$-state model, $N-1$ non-mutually exclusive survival curves are required. The cumulative survival function, $S_n(t)$, represents the probability that a patient survives to health state $n$ or to a lower indexed state beyond time $t$. The probability that a patient is in health state 1 is $S_1(t)$. State membership in health states $2,\ldots, N-1$ is computed as $S_{n}(t) - S_{n-1}(t)$. Finally, the probability of being in the final health state $n$ (i.e., the death state) is $1-S_{N-1}(t)$, or one minus overall survival function.
 
-Survival functions are estimated by fitting parametric or flexible parametric survival models as described in Section~\ref{sec:iCTSTMs}. The $n$th fitted survival model with density $f_n(t)$ has cumulative density function $F_n(t)$, survivor function $1 - F_n(T)$, cumulative hazard $H_n(t) = -\log S_n(t)$, and hazard $h_n(t) = f_n(t)/S_n(t)$. State probabilities for each health state, $x_{hc}$, can be computed for an arbitrarily fine grid of time periods $c$. Costs and QALYs are then computed in the same manner as in the cohort model described in Section~\ref{sec:cDTSTMs}.
+Survival functions are estimated by fitting (flexible) parametric survival models as described in Section~\ref{sec:iCTSTMs}. The $n$th fitted survival model with density $f_n(t)$ has cumulative density function $F_n(t)$, survivor function $1 - F_n(T)$, cumulative hazard $H_n(t) = -\log S_n(t)$, and hazard $h_n(t) = f_n(t)/S_n(t)$. State probabilities for each health state, $x_{hc}$, can be computed for an arbitrarily fine grid of time periods $c$. Costs and QALYs are then computed in the same manner as in the cohort model described in Section~\ref{sec:cDTSTMs}.
 
 %% -- Framework ----------------------------------------------------------------
 \section{Framework} \label{sec:framework}
@@ -246,7 +246,7 @@ Development and analysis of the model is performed in the next three steps as sh
 \caption{Economic modeling process}\label{fig:econ-eval-process-hesim}
 \end{figure}
 
-The three economic models described in Section~\ref{sec:model-taxonomy} are implemented as the \pkg{R6} classes \code{CohortDtstm}, \code{IndivCtstm}, and \code{Psm}. Each class contains methods for simulating disease progression, QALYs, and costs. These methods are made possible by separate \pkg{R6} classes for the disease, utility, and cost submodels. The remainder of this section describes the framework for parameterization and simulation. The cost-effectiveness framework is described in Section~\ref{sec:cea}. 
+The three types of economic models described in Section~\ref{sec:model-taxonomy} are implemented as the \pkg{R6} classes \code{CohortDtstm}, \code{IndivCtstm}, and \code{Psm}. Each class contains methods for simulating disease progression, QALYs, and costs. These methods are made possible by separate \pkg{R6} classes for the disease, utility, and cost submodels. The remainder of this section describes the framework for parameterization and simulation. The cost-effectiveness framework is described in Section~\ref{sec:cea}. 
 
 \subsection{Parameterization} \label{sec:parameterization}
 Each submodel contains fields for the model parameters and the input data. Parameters can either be estimated from a statistical model fit using \proglang{R} or input directly by the user. There are two types of parameter objects, standard parameter objects prefixed by \code{``params''} and ``transformed'' parameter objects prefixed by \code{``tparams''}. The former contain the underlying parameters of a statistical model while the latter contain parameters more immediate to prediction that have been transformed as a function of the input data. The regression coefficients of a logistic regression are an example of parameter objects while the predicted probabilities are examples of a transformed parameter object.
@@ -295,7 +295,7 @@ Linear model & \code{params_lm} & \code{stats::lm}\\
 The most straightforward way to construct state values is with \code{stateval_tbl}, which is a special object used to assign values (i.e. predicted means) to health states that can vary across PSA samples, treatment strategies, patients, and/or time intervals. State values can be specified either as moments (e.g., mean and standard error) or parameters (e.g., shape and scale of gamma distribution) of a probability distribution, or by pre-simulating values from a suitable probability distribution (e.g., from a Bayesian model).
 
 \subsection{Simulation} \label{sec:simulation}
-The utility and cost models are always \pkg{R6} objects of class \code{StateVals}, whereas the disease models vary by economic model (Table~\ref{tbl:submodels}). The disease model is used to simulate survival curves in a PSM and health state transitions in a cDTSTM and iCTSTM.
+The utility and cost models are always \pkg{R6} objects of class \code{StateVals}, whereas the disease models vary by economic model (Table~\ref{tbl:submodels}). The disease model is used to simulate health state transitions in a cDTSTM and iCTSTM, and survival curves in a PSM.
 
 \begin{table} [h]
 \caption{Submodels comprising an economic model}\label{tbl:submodels}
@@ -305,8 +305,8 @@ The utility and cost models are always \pkg{R6} objects of class \code{StateVals
 Economic model & Disease model & Utility model & Cost model(s)\\
 \hline
 \code{CohortDtstm} & \code{CohortDtstmTrans} & \code{StateVals} & \code{StateVals}\\
-\code{Psm} & \code{PsmCurves} & \code{StateVals} & \code{StateVals}\\
 \code{IndivCtstm} & \code{IndivCtstmTrans} & \code{StateVals} & \code{StateVals}\\
+\code{Psm} & \code{PsmCurves} & \code{StateVals} & \code{StateVals}\\
 \hline
 \end{tabular*}
 \end{table}
@@ -323,8 +323,8 @@ Each economic model contains methods for simulating disease progression, QALYs, 
 Economic model & Disease progression  & QALYs & Costs \\
 \hline
 \code{CohortDtstm} & \code{sim_stateprobs()} & \code{sim_qalys()} & \code{sim_costs()}\\
-\code{Psm} & \code{sim_survival()}, \code{sim_stateprobs()}  & \code{sim_qalys()} & \code{sim_costs()}\\
 \code{IndivCtstm} & \code{sim_disease()}, \code{sim_stateprobs()}  & \code{sim_qalys()} & \code{sim_costs()}\\
+\code{Psm} & \code{sim_survival()}, \code{sim_stateprobs()}  & \code{sim_qalys()} & \code{sim_costs()}\\
 \hline
 \end{tabular*}
 \end{table}
