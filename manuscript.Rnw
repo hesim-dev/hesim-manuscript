@@ -47,7 +47,7 @@ set.seed(102)
 %% - Separate authors by \And or \AND (in \author) or by comma (in \Plainauthor).
 %% - \AND starts a new line, \And does not.
 \author{Devin Incerti\\Genentech
-   \And Jeroen Jansen\\University of California, San Francisco}
+   \And Jeroen P Jansen\\University of California, San Francisco}
 \Plainauthor{Devin Incerti, Jeroen Jansen}
 
 %% - \title{} in title case
