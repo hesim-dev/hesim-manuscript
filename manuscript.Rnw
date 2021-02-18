@@ -644,7 +644,7 @@ onc_pfs_os[, new2 := ifelse(strategy_name == "New 2", 1, 0)]
 # Fit models
 fit_pfs_wei <- flexsurv::flexsurvreg(
   Surv(pfs_time, pfs_status) ~ female + new1 + new2,
-  data = onc_pfs_os,,
+  data = onc_pfs_os,
   dist = "weibull")
 
 fit_os_wei <- flexsurvreg(
