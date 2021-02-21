@@ -1065,6 +1065,12 @@ A number of extensions of the current version of \pkg{hesim} would be helpful. F
 \section{Conclusion} \label{sec:conclusion}
 \pkg{hesim} is a modular and computationally efficient \proglang{R} package for development and analysis of simulation models for economic evaluation. Discrete time cohort and continuous time individual-level models are supported, encompassing Markov (time-homogeneous and time-inhomogeneous) and semi-Markov processes as well as partitioned survival analysis. To facilitate integration of statistical methods and economic models and use of both patient- and aggregate-level data, models can be parameterized by either fitting statistical models using \proglang{R}, inputting values directly, or from a combination of the two. Simulated costs and QALYs from a PSA can be used for decision-analysis within a cost-effectiveness framework, allowing users to represent decision uncertainty (e.g., cost-effectiveness planes, cost-effectiveness acceptability curves, and cost-effectiveness acceptability frontiers), and conduct value of information analysis. Algorithms are efficiently coded and written in \proglang{C++} so that approaches that have been considered computationally intensive such as individual-level simulations and PSA can run very quickly. The modular design makes modeling more flexible and it easier to add new features. 
 
+
+%% -- Session info -------------------------------------------------------------
+<<sessionInfo, include=FALSE>>=
+sessionInfo()
+@
+
 %% -- Bibliography -------------------------------------------------------------
 %% - References need to be provided in a .bib BibTeX database.
 %% - All references should be made with \cite, \citet, \citep, \citealp etc.
