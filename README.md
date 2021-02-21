@@ -1,12 +1,12 @@
-This repository contains the code, text, and results for the manuscript describing the [`hesim`](https://hesim-dev.github.io/hesim/) `R` package. A replication file titled `manuscript.R` can be obtained with: 
+This repository contains the code, text, and results for the manuscript describing the [`hesim`](https://hesim-dev.github.io/hesim/) `R` package. A replication file titled `replication.R` can be obtained with: 
 
-```r
-knitr::purl(input = "manuscript.rnw", output = "manuscript.R")
+```{r}
+knitr::purl(input = "manuscript.rnw", output = "replication.R")
 ```
 
 Package dependencies are manged with the [`renv`](https://rstudio.github.io/renv/articles/renv.html) package. You can install all `R` packages used in the replication file with:
 
-```r
+```{r}
 renv::restore()
 ```
 
