@@ -759,7 +759,7 @@ psm$sim_qalys(dr = .03)
 psm$sim_costs(dr = .03)
 @
 
-<<psm_icer>>=
+<<psm_summary>>=
 ce_sim_psm <- psm$summarize(by_grp = TRUE)
 summary(ce_sim_psm, labels = labs_cohort) %>%
   format()
@@ -911,7 +911,7 @@ cdtstm$sim_costs(dr = .03)
 
 and the results are summarized. The \code{by_grp} argument of \code{$summarize()} is by default \code{FALSE} so costs and QALYs are aggregated across subgroups here. 
 
-<<cdtstm_icer>>=
+<<cdtstm_summary>>=
 ce_sim_cdtstm <- cdtstm$summarize()
 summary(ce_sim_cdtstm, labels = labs_cohort) %>%
   format()
