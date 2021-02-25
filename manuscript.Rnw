@@ -618,7 +618,7 @@ One difficulty with partitioned survival analysis is that it does not account fo
 
 <<psm_fits_soc>>=
 onc_pfs_os_soc <- onc_pfs_os[strategy_name == "SOC"]
-fit_pfs_soc_wei <- flexsurv::flexsurvreg(
+fit_pfs_soc_wei <- flexsurvreg(
   Surv(pfs_time, pfs_status) ~ female,
   data = onc_pfs_os_soc,
   dist = "weibull")
