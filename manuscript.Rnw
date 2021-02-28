@@ -128,10 +128,10 @@ Markov and semi-Markov models can be formulated in either continuous or discrete
 PSMs are specialized models that can be parameterized using survival curves and are especially useful in oncology where PFS and OS are commonly reported. They are ``area under the curve'' models, although they can also be formulated as STMs by using the survival curves to construct transition probabilities. 
 
 \subsection{Cohort discrete time state transition models} \label{sec:cDTSTMs}
-cDTSTMs simulate the probability that a cohort of patients is in each of $H$ health states over time. Time is partitioned into intervals $\{[0, t_1], [t_1, t_2], \ldots, [t_C, t_{C+1}]\}$ with each interval $0,\ldots, C$ referred to as a model cycle. We denote $t_c$ as the time at the start of model cycle $c$. An $H \times 1$ state vector that stores the probability of being in each health state at cycle $c$ is written as $x_c = (x_{1c}, x_{2c}, \ldots, x_{Hc})$ where $\sum_h x_{hc} = 1$. A transition probability matrix is an $H \times H$ matrix denoted by $P_c$ where the $(r,s)$th element represents a transition from state $r$ to state $s$ between model cycles $c$ and $c+1$. The state vector at cycle $c+1$ for each of $C$ model cycles is given by,
+cDTSTMs simulate the probability that a cohort of patients is in each of $H$ health states over time. Time is partitioned into intervals $\{[0, t_1], [t_1, t_2], \ldots, [t_{C-1}, t_C]\}$ with each interval $1,\ldots, C$ referred to as a model cycle. We denote $t_c$ as the time at the end of model cycle $c$. An $H \times 1$ state vector that stores the probability of being in each health state at cycle $c$ is written as $x_c = (x_{1c}, x_{2c}, \ldots, x_{Hc})$ where $\sum_h x_{hc} = 1$. A transition probability matrix is an $H \times H$ matrix denoted by $P_c$ where the $(r,s)$th element represents a transition from state $r$ to state $s$ between model cycles $c$ and $c+1$. The state vector at cycle $c+1$ for each of $C$ model cycles is given by, 
 
 \begin{equation} \label{eqn:markov-sim}
-x_{c+1}^T= x_c^T P_c, \quad c = 0,\ldots, C.
+x_{c+1}^T= x_c^T P_c, \quad c = 0,\ldots, C-1.
 \end{equation}
 
 The transition probability matrices can also be characterized in terms of transition intensity matrices, $Q_c$, of the same dimensions as $P_c$ and representing an underlying continuous process with a patient in state $X(t)$ at exact time $t$. The $(r,s)$th element is the hazard representing the instantaneous risk of moving from state $r$ to state $s$,
@@ -159,10 +159,10 @@ where $r$ is the discount rate and at time $t$, $z_h(t)$ is the predicted cost o
 In discrete time, the integral is approximated with
 
 \begin{equation} \label{eqn:riemann-sum}
-\sum_{c = 0}^{C}f(t_c^{*})\Delta t_c,
+\sum_{c = 1}^{C}f(t_c^{*})\Delta t_c,
 \end{equation}
 
-where $\Delta t_c = t_{c+1} - t_{c}$,  $t_c^{*}\in[t_{c},t_{c+1}]$, and $f(t)= z_h(t) e^{-rt} p_h(t)$. Three methods can be used to estimate $f(t_c^{*})$. First, a left Riemann sum uses values at the start of each time interval, $f(t_c^{*}) = f(t_c)$. Second, a right Riemann sum uses values at the end of each time interval, $f(t_c^{*}) = f(t_{c+1})$. Finally, the trapezoid rule averages values at the start and end of each interval, $f(t_c^{*}) = \frac{1}{2}\Delta t_c[f(t_c) + f(t_{c+1})]$. 
+where $\Delta t_c = t_{c} - t_{c-1}$,  $t_c^{*}\in[t_{c-1},t_{c}]$, and $f(t)= z_h(t) e^{-rt} p_h(t)$. Three methods can be used to estimate $f(t_c^{*})$. First, a left Riemann sum uses values at the start of each time interval, $f(t_c^{*}) = f(t_{c-1})$. Second, a right Riemann sum uses values at the end of each time interval, $f(t_c^{*}) = f(t_{c})$. Finally, the trapezoid rule averages values at the start and end of each interval, $f(t_c^{*}) = \frac{1}{2}\Delta t_c[f(t_{c-1}) + f(t_{c})]$. 
 
 \subsection{Individual continuous time state transition models} \label{sec:iCTSTMs}
 iCTSTMs simulate individual trajectories between health states using random number generation. Trajectories are simulated for multiple patients and expected costs and QALYs are computed by averaging across the simulated patients. A reasonably large number of patients must be simulated to ensure that expected values are stable \citep{ohagan2007monte}. 
