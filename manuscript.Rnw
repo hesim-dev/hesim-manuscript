@@ -382,7 +382,7 @@ patients <- data.table(
 
 states <- data.table(
   state_id = c(1, 2),
-  state_name = c("Stable", "Progression") # Non-death health states
+  state_name = c("Stable", "Progression") 
 )
 
 strategies <- data.table(
@@ -510,11 +510,8 @@ transmod <- create_IndivCtstmTrans(wei_fits, transmod_data,
 The utility and cost models can be easily constructed from the \code{stateval_tbl} objects with the \code{create_StateVals()} function, in which the (transformed) parameters are \code{tparams_mean} objects. The \code{hesim_data} object provides the information required to ensure that state values are constant within groups not specified within a particular \code{stateval_tbl}; for instance, since utility only varies by health state, it is assumed constant across patients, treatment strategies, and time. The models for each cost category are combined in a list.
   
 <<ictstm_stvalmods>>=
-# Utility
 utilitymod <- create_StateVals(utility_tbl, n = n_samples, 
                                hesim_data = hesim_dat)
-
-# Costs
 drugcostmod <- create_StateVals(drugcost_tbl, n = n_samples,
                                 time_reset = TRUE, hesim_data = hesim_dat)
 medcostmod <- create_StateVals(medcost_tbl, n = n_samples,
@@ -869,7 +866,7 @@ We use this function to predict distributions of relative risks (for the transit
 x_rr <- as.matrix(transmod_data[, .(soc, new1, new2)])
 rr <- cbind(xbeta(x_rr, params_rr_rng$rr_12),
             xbeta(x_rr, params_rr_rng$rr_13))
-head(rr) # Corresponds to 1st 6 rows in tpmat_id
+head(rr) 
 @
 
 Relative risks are applied to the elements (stable $\rightarrow$ progression (1, 2) and stable $\rightarrow$ death (1, 3)) of each transition probability matrix for SOC with \code{apply_rr()}. The result is an array of matrices for each PSA sample, treatment strategy,  and representative patient, as desired. The \code{tparams_transprobs} object can then be created by simply combining the transition probability matrices and the identification dataset. 
@@ -953,10 +950,10 @@ Uncertainty over $\theta$ is captured using the PSA. The simulated distribution 
 ce_sim_ictstm
 @
 
-A CEA is performed from this output with the \code{cea()} and \code{cea_pw()} functions. \code{cea()} summarizes results by simultaneously accounting for each treatment strategy in the analysis, while \code{cea_pw()} summarizes ``pairwise'' results in which each treatment is compared to a comparator (in this case SOC).
+A CEA is performed from this output with the \code{cea()} and \code{cea_pw()} functions. \code{cea()} summarizes results by simultaneously accounting for each treatment strategy in the analysis, while \code{cea_pw()} summarizes ``pairwise'' results in which each treatment is compared to a comparator (in this case SOC). 
 
 <<cea>>=
-wtp <- seq(0, 250000, 500) # Willingness to pay per QALY
+wtp <- seq(0, 250000, 500) 
 cea_ictstm <- cea(ce_sim_ictstm, dr_costs = .03, dr_qalys = .03, k = wtp)
 cea_pw_ictstm <- cea_pw(ce_sim_ictstm, comparator = 1,
                         dr_qalys = .03, dr_costs = .03,
