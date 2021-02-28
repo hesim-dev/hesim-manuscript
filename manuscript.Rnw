@@ -9,6 +9,7 @@
 \usepackage{graphicx}
 \usepackage{subcaption} 
 \usepackage{algorithm}
+\captionsetup[algorithm]{labelfont=rm,labelsep=colon}
 \usepackage{multirow}
 \usepackage{tikz}
 \usetikzlibrary{positioning}
@@ -179,7 +180,7 @@ where parameters $\theta = (\theta_1, \theta_2, \ldots, \theta_p)$ may depend on
 A survival distribution is specified for each permitted transition in the multi-state model. A trajectory through the model can then be simulated as described in Algorithm~\ref{alg:sim-ictstm}. While the algorithm repeats until a patient dies, it can also be stopped at a specified time $t$ or when a patient reaches a maximum age. In the latter scenario, death is assumed to occur at the maximum age.
  
 \begin{algorithm}
-\caption{Simulation of individual continuous time state transition model}
+\caption{Simulation of individual continuous time state transition model.}
 \label{alg:sim-ictstm}
 \begin{enumerate}
 \item Let $r$ be the state entered at time $t_j$. The number of permitted transitions from state $r$ is given by $n_r$. If $j=0$, then $t_j = 0$. 
@@ -243,7 +244,7 @@ Development and analysis of the model is performed in the next three steps as sh
 \draw [thick, ->] (E.south) -- (B.north);
 
 \end{tikzpicture}
-\caption{Economic modeling process}\label{fig:econ-eval-process-hesim}
+\caption{Economic modeling process.}\label{fig:econ-eval-process-hesim}
 \end{figure}
 
 The three types of economic models described in Section~\ref{sec:model-taxonomy} are implemented as the \pkg{R6} classes \code{CohortDtstm}, \code{IndivCtstm}, and \code{Psm}. Each class contains methods for simulating disease progression, QALYs, and costs. These methods are made possible by separate \pkg{R6} classes for the disease, utility, and cost submodels. The remainder of this section describes the framework for parameterization and simulation. The cost-effectiveness framework is described in Section~\ref{sec:cea}. 
@@ -257,7 +258,6 @@ Transformed parameter objects are often useful when parameterizing a model using
 The statistical model used to parameterize the disease model depends on the type of economic model. For example, multinomial logistic regressions can be used to parameterize a cDTSTM, a set of N-1 independent survival models are used to parameterize an N-state partitioned survival model, and multi-state models can be used to parameterize an iCTSTM (Table~\ref{tbl:parameterize-disease-model}). 
 
 \begin{table} [h]
-\caption{Parameterization of disease models}\label{tbl:parameterize-disease-model}
 \footnotesize
 \begin{tabular*}{\textwidth}{l l l l}
 \hline
@@ -270,6 +270,7 @@ Economic model & Statistical model & Parameter object & Model object\\
 \code{Psm} & Independent survival models & \code{param_surv_list} & \code{flexsurvreg_list}\\
 \hline
 \end{tabular*}
+\caption{Parameterization of disease models.}\label{tbl:parameterize-disease-model}
 \end{table}
 
 The parameters of a survival model are stored in a \code{params_surv} object and a \code{params_surv_list} can be used to store the parameters of multiple survival models. The latter is useful for storing the parameters of a multi-state model or the independent survival models required for a PSM. The parameters of a multinomial logistic regression are stored in a \code{params_mlogit} object and can be created by fitting a model for each row in a transition probability matrix with \code{nnet::multinom()}.
@@ -280,7 +281,6 @@ The parameters of a survival model are stored in a \code{params_surv} object and
 State values (i.e., costs and utilities) do not depend on the choice of disease model. They can currently either be modeled using a linear model or using predicted means (Table~\ref{tbl:parameterize-stateval-model}). 
 
 \begin{table} [h]
-\caption{Parameterization of state value models}\label{tbl:parameterize-stateval-model}
 \footnotesize
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l l l l}
 \hline
@@ -290,6 +290,7 @@ Predicted means & \code{tparams_mean} & \code{stateval_tbl}\\
 Linear model & \code{params_lm} & \code{stats::lm}\\
 \hline
 \end{tabular*}
+\caption{Parameterization of state value models.}\label{tbl:parameterize-stateval-model}
 \end{table}
 
 The most straightforward way to construct state values is with \code{stateval_tbl}, which is a special object used to assign values (i.e., predicted means) to health states that can vary across PSA samples, treatment strategies, patients, and/or time intervals. State values can be specified either as moments (e.g., mean and standard error) or parameters (e.g., shape and scale of gamma distribution) of a probability distribution, or by pre-simulating values from a suitable probability distribution (e.g., from a Bayesian model).
@@ -298,7 +299,6 @@ The most straightforward way to construct state values is with \code{stateval_tb
 The utility and cost models are always \pkg{R6} objects of class \code{StateVals}, whereas the disease models vary by economic model (Table~\ref{tbl:submodels}). The disease model is used to simulate health state transitions in a cDTSTM and iCTSTM, and survival curves in a PSM.
 
 \begin{table} [h]
-\caption{Submodels comprising an economic model}\label{tbl:submodels}
 \footnotesize
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l l l l}
 \hline
@@ -309,6 +309,7 @@ Economic model & Disease model & Utility model & Cost model(s)\\
 \code{Psm} & \code{PsmCurves} & \code{StateVals} & \code{StateVals}\\
 \hline
 \end{tabular*}
+\caption{Submodels comprising an economic model.}\label{tbl:submodels}
 \end{table}
 
 The disease and state value models can either be instantiated from parameter or model objects using \code{S3} generic functions prefixed by ``\code{create}'' or using the \pkg{R6} constructor method \code{$new()}. \code{create_IndivCtstmTrans()} is an example of the former that can be used to create an \code{IndivCtstmTrans} object from a \code{flexsurvreg}, \code{flexsurvreg_list}, \code{params_surv}, or \code{params_surv_list} object. Similarly, a \code{StateVals} object can, for example, be created from a \code{stateval_tbl} object with \code{create_StateVals()}. The complete economic model is instantiated by combining the submodels using \code{$new()}.
@@ -316,7 +317,6 @@ The disease and state value models can either be instantiated from parameter or 
 Each economic model contains methods for simulating disease progression, QALYs, and costs (Table~\ref{tbl:simulate-outcomes}). The utility and cost models always simulate QALYs and costs from the simulated progression of disease with the methods \code{$sim_qalys()} and \code{$sim_costs()}, respectively. Methods for simulating disease progression differ slightly since the simulation approaches differ as described in Section~\ref{sec:model-taxonomy}. In an N-state PSM $N-1$ survival curves are generated and in an iCTSTM a trajectory through the STM is simulated for multiple patients via individual simulation. All models can simulate state probabilities over time.
 
 \begin{table} [h]
-\caption{Methods for simulating outcomes from economic models}\label{tbl:simulate-outcomes}
 \footnotesize
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l l l l}
 \hline
@@ -327,6 +327,7 @@ Economic model & Disease progression  & QALYs & Costs \\
 \code{Psm} & \code{sim_survival()}, \code{sim_stateprobs()}  & \code{sim_qalys()} & \code{sim_costs()}\\
 \hline
 \end{tabular*}
+\caption{Methods for simulating outcomes from economic models.}\label{tbl:simulate-outcomes}
 \end{table}
 
 %% -- Illustrative example -----------------------------------------------------
@@ -348,7 +349,7 @@ We consider a three-state model commonly used in oncology. As shown in Figure~\r
 \draw [thick, ->] (S.north) to [bend left = 20] (D.north);
 
 \end{tikzpicture}
-\caption{Three state model of disease progression in oncology}\label{fig:three-state-model}
+\caption{Three state model of disease progression in oncology.}\label{fig:three-state-model}
 \end{figure}
 
 This model can be simulated using any of the model types described in Section~\ref{sec:model-taxonomy}. We demonstrate use of all three below, noting that the type of model employed should depend on the available data. We begin with the richest dataset in Section~\ref{sec:ictstm-example} and show how a flexible iCTSTM can be parameterized when continuously observed patient-level multi-state data is available. The next two sections then show how models can be developed when the data is more limited. Section~\ref{sec:psm-example} uses a PSM in a case where PFS and OS are available but multi-state data is not, and Section~\ref{sec:cdtstm-example} develops a cDTSTM in a setting where multi-state data is available but it is not continuously observed. For the sake of illustration, in both Sections~\ref{sec:psm-example} and~\ref{sec:cdtstm-example}, patient-level data is available for the SOC, but not for estimation of relative treatment effects.
@@ -555,7 +556,7 @@ autoplot(ictstm$stateprobs_, labels = labs_indiv,
 \begin{figure}[h]
 \centering
 \includegraphics{figure/ictstm_plot_stateprobs-1.pdf}
-\caption{Mean simulated state probabilities from the probabilistic sensitivity analysis} \label{fig:ictstm-stprobs}
+\caption{Mean simulated state probabilities from the probabilistic sensitivity analysis.} \label{fig:ictstm-stprobs}
 \end{figure}
 
 QALYs and costs are simulated from the disease progression simulation output using the utility and cost models with the \code{$sim_qalys()} and \code{$sim_costs()} methods. Outcomes are simulated for each discount rate specified with the \code{dr} argument. By default, \code{$sim_qalys()} will return life-years (i.e., a utility value of 1 for each year of life) in addition to QALYs. 
@@ -1007,7 +1008,7 @@ A number of common measures can be used to represent decision uncertainty from a
 \includegraphics{figure/evpi-1.pdf}
 \caption{EVPI} \label{subfig:evpi}
 \end{subfigure}
-\caption{Representations of decision uncertainty}\label{fig:cea-plots}
+\caption{Representations of decision uncertainty.}\label{fig:cea-plots}
 \end{figure}
 
 The cost-effectiveness plane plots the incremental effectiveness of a treatment strategy (relative to a comparator) against the incremental cost of the treatment strategy. The plot is useful because it demonstrates both the uncertainty and the magnitude of the estimates. Each point on the plot is from a particular draw from the PSA. Data for plotting a cost-effectiveness plane comes from the \code{delta} output generated from \code{cea_pw()}.
