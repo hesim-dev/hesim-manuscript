@@ -1,0 +1,337 @@
+\begin{thebibliography}{42}
+\newcommand{\enquote}[1]{``#1''}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\urlprefix}{URL }
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi:\discretionary{}{}{}#1}\else
+  \providecommand{\doi}{doi:\discretionary{}{}{}\begingroup
+  \urlstyle{rm}\Url}\fi
+\providecommand{\eprint}[2][]{\url{#2}}
+
+\bibitem[{Aalen and Johansen(1978)}]{aalen1978empirical}
+Aalen OO, Johansen S (1978).
+\newblock \enquote{An Empirical Transition Matrix for Non-Homogeneous Markov
+  Chains Based on Censored Observations.}
+\newblock \emph{Scandinavian Journal of Statistics}, pp. 141--150.
+
+\bibitem[{Alarid-Escudero \emph{et~al.}(2020)Alarid-Escudero, Easterly, Enns,
+  and Knowlton}]{alarid2018dampack}
+Alarid-Escudero F, Easterly C, Enns E, Knowlton G (2020).
+\newblock \enquote{\pkg{dampack}: Decision-Analytic Modeling Package.}
+\newblock \url{https://github.com/DARTH-git/dampack}.
+
+\bibitem[{Asaria \emph{et~al.}(2016)Asaria, Griffin, and
+  Cookson}]{asaria2016distributional}
+Asaria M, Griffin S, Cookson R (2016).
+\newblock \enquote{Distributional Cost-Effectiveness Analysis: A Tutorial.}
+\newblock \emph{Medical Decision Making}, \textbf{36}(1), 8--19.
+\newblock \doi{10.1177/0272989X15583266}.
+
+\bibitem[{Asaria \emph{et~al.}(2015)Asaria, Griffin, Cookson, Whyte, and
+  Tappenden}]{asaria2015distributional}
+Asaria M, Griffin S, Cookson R, Whyte S, Tappenden P (2015).
+\newblock \enquote{Distributional Cost-Effectiveness Analysis of Health Care
+  Programmes--A Methodological Case Study of the UK Bowel Cancer Screening
+  Programme.}
+\newblock \emph{Health Economics}, \textbf{24}(6), 742--754.
+\newblock \doi{10.1002/hec.3058}.
+
+\bibitem[{Baio(2012)}]{baio2012bayesian}
+Baio G (2012).
+\newblock \emph{Bayesian Methods in Health Economics}.
+\newblock CRC Press.
+\newblock \doi{10.1201/b13099}.
+
+\bibitem[{Baio(2020)}]{baio2020survhe}
+Baio G (2020).
+\newblock \enquote{\pkg{survHE}: Survival Analysis for Health Economic
+  Evaluation and Cost-Effectiveness Modeling.}
+\newblock \emph{Journal of Statistical Software}, \textbf{95}(1), 1--47.
+\newblock \doi{10.18637/jss.v095.i14}.
+
+\bibitem[{Baio \emph{et~al.}(2017)Baio, Berardi, and Heath}]{baio2017bayesian}
+Baio G, Berardi A, Heath A (2017).
+\newblock \emph{Bayesian Cost-Effectiveness Analysis with the \proglang{R}
+  Package BCEA}.
+\newblock Springer.
+\newblock \doi{10.1007/978-3-319-55718-2}.
+
+\bibitem[{Baio and Heath(2017)}]{baio2017simple}
+Baio G, Heath A (2017).
+\newblock \enquote{When Simple Becomes Complicated: Why \proglang{Excel} Should
+  Lose Its Place at the Top Table.}
+\newblock \emph{Global \& Regional Health Technology Assessment}.
+\newblock \doi{10.5301/grhta.5000247}.
+
+\bibitem[{Brennan \emph{et~al.}(2006)Brennan, Chick, and
+  Davies}]{brennan2006taxonomy}
+Brennan A, Chick SE, Davies R (2006).
+\newblock \enquote{A Taxonomy of Model Structures for Economic Evaluation of
+  Health Technologies.}
+\newblock \emph{Health Economics}, \textbf{15}(12), 1295--1310.
+\newblock \doi{10.1002/hec.1148}.
+
+\bibitem[{Briggs and Sculpher(1998)}]{briggs1998introduction}
+Briggs A, Sculpher M (1998).
+\newblock \enquote{An Introduction to Markov Modelling for Economic
+  Evaluation.}
+\newblock \emph{Pharmacoeconomics}, \textbf{13}(4), 397--409.
+\newblock \doi{10.2165/00019053-199813040-00003}.
+
+\bibitem[{Briggs \emph{et~al.}(2006)Briggs, Sculpher, and
+  Claxton}]{briggs2006decision}
+Briggs A, Sculpher M, Claxton K (2006).
+\newblock \emph{Decision Modelling for Health Economic Evaluation}.
+\newblock Oup Oxford.
+
+\bibitem[{Claxton \emph{et~al.}(2005)Claxton, Sculpher, McCabe, Briggs,
+  Akehurst, Buxton, Brazier, and O'Hagan}]{claxton2005probabilistic}
+Claxton K, Sculpher M, McCabe C, Briggs A, Akehurst R, Buxton M, Brazier J,
+  O'Hagan T (2005).
+\newblock \enquote{Probabilistic Sensitivity Analysis for NICE Technology
+  Assessment: Not an Optional Extra.}
+\newblock \emph{Health Economics}, \textbf{14}(4), 339--347.
+\newblock \doi{10.1002/hec.985}.
+
+\bibitem[{Cookson \emph{et~al.}(2017)Cookson, Mirelman, Griffin, Asaria,
+  Dawkins, Norheim, Verguet, and Culyer}]{cookson2017using}
+Cookson R, Mirelman AJ, Griffin S, Asaria M, Dawkins B, Norheim OF, Verguet S,
+  Culyer AJ (2017).
+\newblock \enquote{Using Cost-Effectiveness Analysis to Address Health Equity
+  Concerns.}
+\newblock \emph{Value in Health}, \textbf{20}(2), 206--212.
+\newblock \doi{10.1016/j.jval.2016.11.027}.
+
+\bibitem[{Cox and Miller(1977)}]{cox1977theory}
+Cox DR, Miller HD (1977).
+\newblock \emph{The Theory of Stochastic Processes}, volume 134.
+\newblock CRC press.
+\newblock \doi{10.1201/9780203719152}.
+
+\bibitem[{Dakin \emph{et~al.}(2015)Dakin, Devlin, Feng, Rice, O'Neill, and
+  Parkin}]{dakin2015influence}
+Dakin H, Devlin N, Feng Y, Rice N, O'Neill P, Parkin D (2015).
+\newblock \enquote{The Influence of Cost-Effectiveness and Other Factors on
+  NICE Decisions.}
+\newblock \emph{Health Economics}, \textbf{24}(10), 1256--1271.
+\newblock \doi{10.1002/hec.3086}.
+
+\bibitem[{de~Wreede \emph{et~al.}(2011)de~Wreede, Fiocco, Putter
+  \emph{et~al.}}]{de2011mstate}
+de~Wreede LC, Fiocco M, Putter H, \emph{et~al.} (2011).
+\newblock \enquote{\pkg{mstate}: An R Package for the Analysis of Competing
+  Risks and Multi-State Models.}
+\newblock \emph{Journal of statistical software}, \textbf{38}(7), 1--30.
+\newblock \doi{10.18637/jss.v038.i07}.
+
+\bibitem[{Dias \emph{et~al.}(2018)Dias, Ades, Welton, Jansen, and
+  Sutton}]{dias2018network}
+Dias S, Ades AE, Welton NJ, Jansen JP, Sutton AJ (2018).
+\newblock \emph{Network Meta-Analysis for Decision-Making}.
+\newblock John Wiley \& Sons.
+\newblock \doi{10.1002/9781118951651}.
+
+\bibitem[{Filipovi{\'c}-Pierucci \emph{et~al.}(2017)Filipovi{\'c}-Pierucci,
+  Zarca, and Durand-Zaleski}]{filipovic2017markov}
+Filipovi{\'c}-Pierucci A, Zarca K, Durand-Zaleski I (2017).
+\newblock \enquote{Markov Models for Health Economic Evaluations: The
+  \proglang{R} Package \pkg{heemod}.}
+\newblock ArXiv:1702.03252 [stat.AP],
+  \urlprefix\url{https://arxiv.org/abs/1702.03252}.
+
+\bibitem[{Fiocco \emph{et~al.}(2008)Fiocco, Putter, and van
+  Houwelingen}]{fiocco2008reduced}
+Fiocco M, Putter H, van Houwelingen HC (2008).
+\newblock \enquote{Reduced-Rank Proportional Hazards Regression and
+  Simulation-Based Prediction for Multi-State Models.}
+\newblock \emph{Statistics in Medicine}, \textbf{27}(21), 4340--4358.
+\newblock \doi{https://doi.org/10.1002/sim.3305}.
+
+\bibitem[{Glasziou \emph{et~al.}(1990)Glasziou, Simes, and
+  Gelber}]{glasziou1990quality}
+Glasziou P, Simes R, Gelber R (1990).
+\newblock \enquote{Quality Adjusted Survival Analysis.}
+\newblock \emph{Statistics in Medicine}, \textbf{9}(11), 1259--1276.
+\newblock \doi{10.1002/sim.4780091106}.
+
+\bibitem[{Goldhirsch \emph{et~al.}(1989)Goldhirsch, Gelber, Simes, Glasziou,
+  and Coates}]{goldhirsch1989costs}
+Goldhirsch A, Gelber RD, Simes RJ, Glasziou P, Coates AS (1989).
+\newblock \enquote{Costs and Benefits of Adjuvant Therapy in Breast Cancer: A
+  Quality-Adjusted Survival Analysis.}
+\newblock \emph{Journal of Clinical Oncology}, \textbf{7}(1), 36--44.
+\newblock \doi{10.1200/JCO.1989.7.1.36}.
+
+\bibitem[{Guyot \emph{et~al.}(2012)Guyot, Ades, Ouwens, and
+  Welton}]{guyot2012enhanced}
+Guyot P, Ades A, Ouwens MJ, Welton NJ (2012).
+\newblock \enquote{Enhanced Secondary Analysis of Survival Data: Reconstructing
+  the Data from Published Kaplan-Meier Survival Curves.}
+\newblock \emph{BMC Medical Research Methodology}, \textbf{12}(1), 9.
+\newblock \doi{10.1186/1471-2288-12-9}.
+
+\bibitem[{Heath \emph{et~al.}(2018)Heath, Manolopoulou, and
+  Baio}]{heath2018efficient}
+Heath A, Manolopoulou I, Baio G (2018).
+\newblock \enquote{Efficient Monte Carlo Estimation of the Expected Value of
+  Sample Information using Moment Matching.}
+\newblock \emph{Medical Decision Making}, \textbf{38}(2), 163--173.
+\newblock \doi{10.1177/0272989X17738515}.
+
+\bibitem[{Hern{\'a}ndez~Alava \emph{et~al.}(2013)Hern{\'a}ndez~Alava, Wailoo,
+  Wolfe, and Michaud}]{hernandez2013relationship}
+Hern{\'a}ndez~Alava M, Wailoo A, Wolfe F, Michaud K (2013).
+\newblock \enquote{The Relationship Between EQ-5d, HAQ and Pain in Patients
+  with Rheumatoid Arthritis.}
+\newblock \emph{Rheumatology}, \textbf{52}(5), 944--950.
+\newblock \doi{10.1093/rheumatology/kes400}.
+
+\bibitem[{Incerti \emph{et~al.}(2019)Incerti, Thom, Baio, and
+  Jansen}]{incerti2019r}
+Incerti D, Thom H, Baio G, Jansen JP (2019).
+\newblock \enquote{\proglang{R} you Still using \proglang{Excel}? The
+  Advantages of Modern Software Tools for Health Technology Assessment.}
+\newblock \emph{Value in Health}, \textbf{22}(5), 575--579.
+\newblock \doi{10.1016/j.jval.2019.01.003}.
+
+\bibitem[{Jackson(2016)}]{jackson2016flexsurv}
+Jackson CH (2016).
+\newblock \enquote{\pkg{flexsurv}: A Platform for Parametric Survival Modeling
+  in \proglang{R}.}
+\newblock \emph{Journal of Statistical Software}, \textbf{70}.
+\newblock \doi{10.18637/jss.v070.i08}.
+
+\bibitem[{Jalal \emph{et~al.}(2017)Jalal, Pechlivanoglou, Krijkamp,
+  Alarid-Escudero, Enns, and Hunink}]{jalal2017overview}
+Jalal H, Pechlivanoglou P, Krijkamp E, Alarid-Escudero F, Enns E, Hunink MM
+  (2017).
+\newblock \enquote{An Overview of \proglang{R} in Health Decision Sciences.}
+\newblock \emph{Medical Decision Making}, \textbf{37}(7), 735--746.
+\newblock \doi{10.1177/0272989X16686559}.
+
+\bibitem[{Jansen \emph{et~al.}(2020)Jansen, Incerti, and
+  Trikalinos}]{jansen2020multi}
+Jansen JP, Incerti D, Trikalinos T (2020).
+\newblock \enquote{Multi-State Network Meta-Analysis of Cause-Specific Survival
+  Data.}
+\newblock \emph{medRxiv}.
+\newblock \doi{10.1101/2020.11.13.20231332}.
+
+\bibitem[{Kharroubi \emph{et~al.}(2007)Kharroubi, Brazier, Roberts, and
+  O’Hagan}]{kharroubi2007modelling}
+Kharroubi SA, Brazier JE, Roberts J, O’Hagan A (2007).
+\newblock \enquote{Modelling SF-6D Health State Preference Data using a
+  Nonparametric Bayesian Method.}
+\newblock \emph{Journal of Health Economics}, \textbf{26}(3), 597--612.
+\newblock \doi{10.1016/j.jhealeco.2006.09.002}.
+
+\bibitem[{Lenderking \emph{et~al.}(1994)Lenderking, Gelber, Cotton, Cole,
+  Goldhirsch, Volberding, and Testa}]{lenderking1994eval}
+Lenderking WR, Gelber RD, Cotton DJ, Cole BF, Goldhirsch A, Volberding PA,
+  Testa MA (1994).
+\newblock \enquote{Evaluation of the Quality of Life Associated with Zidovudine
+  Treatment in Asymptomatic Human Immunodeficiency Virus Infection.}
+\newblock \emph{New England Journal of Medicine}, \textbf{330}(11), 738--743.
+\newblock \doi{10.1056/NEJM199403173301102}.
+
+\bibitem[{Nixon and Thompson(2005)}]{nixon2005methods}
+Nixon RM, Thompson SG (2005).
+\newblock \enquote{Methods for Incorporating Covariate Adjustment, Subgroup
+  Analysis and Between-Centre Differences into Cost-Effectiveness Evaluations.}
+\newblock \emph{Health Economics}, \textbf{14}(12), 1217--1229.
+\newblock \doi{10.1002/hec.1008}.
+
+\bibitem[{O'Hagan \emph{et~al.}(2007)O'Hagan, Stevenson, and
+  Madan}]{ohagan2007monte}
+O'Hagan A, Stevenson M, Madan J (2007).
+\newblock \enquote{Monte Carlo Probabilistic Sensitivity Analysis for Patient
+  Level Simulation Models: Efficient Estimation of Mean and Variance using
+  ANOVA.}
+\newblock \emph{Health Economics}, \textbf{16}(10), 1009--1023.
+\newblock \doi{10.1002/hec.1199}.
+
+\bibitem[{Pahuta \emph{et~al.}(2019)Pahuta, Werier, Wai, Patchell, and
+  Coyle}]{pahuta2019technique}
+Pahuta MA, Werier J, Wai EK, Patchell RA, Coyle D (2019).
+\newblock \enquote{A Technique for Approximating Transition Rates from
+  Published Survival Analyses.}
+\newblock \emph{Cost Effectiveness and Resource Allocation}, \textbf{17}(1),
+  12.
+\newblock \doi{10.1186/s12962-019-0182-7}.
+
+\bibitem[{Price \emph{et~al.}(2011)Price, Welton, and
+  Ades}]{price2011parameterization}
+Price MJ, Welton NJ, Ades A (2011).
+\newblock \enquote{Parameterization of Treatment Effects for Meta-Analysis in
+  Multi-State Markov Models.}
+\newblock \emph{Statistics in Medicine}, \textbf{30}(2), 140--151.
+\newblock \doi{10.1002/sim.4059}.
+
+\bibitem[{Putter \emph{et~al.}(2007)Putter, Fiocco, and
+  Geskus}]{putter2007tutorial}
+Putter H, Fiocco M, Geskus RB (2007).
+\newblock \enquote{Tutorial in Biostatistics: Competing Risks and Multi-State
+  Models.}
+\newblock \emph{Statistics in Medicine}, \textbf{26}(11), 2389--2430.
+\newblock \doi{https://doi.org/10.1002/sim.2712}.
+
+\bibitem[{Strong \emph{et~al.}(2014)Strong, Oakley, and
+  Brennan}]{strong2014estimating}
+Strong M, Oakley JE, Brennan A (2014).
+\newblock \enquote{Estimating Multiparameter Partial Expected Value of Perfect
+  Information from a Probabilistic Sensitivity Analysis Sample: A Nonparametric
+  Regression Approach.}
+\newblock \emph{Medical Decision Making}, \textbf{34}(3), 311--326.
+\newblock \doi{10.1177/0272989X13505910}.
+
+\bibitem[{Torrance(1986)}]{torrance1986measurement}
+Torrance GW (1986).
+\newblock \enquote{Measurement of Health State Utilities for Economic
+  Appraisal: A Review.}
+\newblock \emph{Journal of Health Economics}, \textbf{5}(1), 1--30.
+\newblock \doi{10.1016/0167-6296(86)90020-2}.
+
+\bibitem[{Trosman \emph{et~al.}(2011)Trosman, Van~Bebber, and
+  Phillips}]{trosman2011health}
+Trosman JR, Van~Bebber SL, Phillips KA (2011).
+\newblock \enquote{Health Technology Assessment and Private Payers' Coverage of
+  Personalized Medicine.}
+\newblock \emph{Journal of Oncology Practice}, \textbf{7}(3S), 18s--24s.
+\newblock \doi{10.1200/JOP.2011.000300}.
+
+\bibitem[{Wickham(2016)}]{wickham2016ggplot2}
+Wickham H (2016).
+\newblock \emph{\pkg{ggplot2}: Elegant Graphics for Data Analysis}.
+\newblock Springer-Verlag New York.
+\newblock ISBN 978-3-319-24277-4.
+\newblock \doi{10.1007/978-0-387-98141-3}.
+\newblock \urlprefix\url{https://ggplot2.tidyverse.org}.
+
+\bibitem[{Williams \emph{et~al.}(2017)Williams, Lewsey, Briggs, and
+  Mackay}]{williams2017cost}
+Williams C, Lewsey JD, Briggs AH, Mackay DF (2017).
+\newblock \enquote{Cost-Effectiveness Analysis in \proglang{R} using a
+  Multi-State Modeling Survival Analysis Framework: A Tutorial.}
+\newblock \emph{Medical Decision Making}, \textbf{37}(4), 340--352.
+\newblock \doi{10.1177/0272989X16651869}.
+
+\bibitem[{Woods \emph{et~al.}(2018)Woods, Sideris, Palmer, Latimer, and
+  Soares}]{woods2017nice}
+Woods B, Sideris E, Palmer S, Latimer N, Soares M (2018).
+\newblock \enquote{NICE DSU Technical Support Document 19: Partitioned Survival
+  Analysis for Decision Modelling in Health Care: A Critical Review.}
+\newblock \emph{Technical report}, National Institute for Health and Care
+  Excellence, Decision Support Unit.
+\newblock
+  \urlprefix\url{http://nicedsu.org.uk/wp-content/uploads/2017/06/Partitioned-Survival-Analysis-final-report.pdf}.
+
+\bibitem[{Woods \emph{et~al.}(2020)Woods, Sideris, Palmer, Latimer, and
+  Soares}]{woods2020partitioned}
+Woods BS, Sideris E, Palmer S, Latimer N, Soares M (2020).
+\newblock \enquote{Partitioned Survival and State Transition Models for
+  Healthcare Decision Making in Oncology: Where Are We Now?}
+\newblock \emph{Value in Health}.
+\newblock \doi{10.1016/j.jval.2020.08.2094}.
+
+\end{thebibliography}

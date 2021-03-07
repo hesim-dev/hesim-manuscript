@@ -1,4 +1,19 @@
-\documentclass[article, nojss]{jss}
+\documentclass[article, nojss]{jss}\usepackage[]{graphicx}\usepackage[]{color}
+% maxwidth is the original width if it is less than linewidth
+% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\usepackage{Sweave}
+
+
 
 %% -- LaTeX packages and custom commands ---------------------------------------
 
@@ -25,20 +40,9 @@
 %% For Sweave-based articles about R packages:
 %% need no \usepackage{Sweave}
 
-<<include=FALSE>>=
-library(knitr)
-knitr::render_sweave()
-opts_chunk$set(
-  engine="R", tidy = FALSE, eval = TRUE, cache = TRUE,
-  fig.height = 4, fig.width = 6
-)
-@
 
-<<preliminaries, echo=FALSE, results="hide">>=
-options(prompt = "R> ", continue = "+  ", width = 70, useFancyQuotes = FALSE)
-ggplot2::theme_set(ggplot2::theme_bw())
-set.seed(102)
-@
+
+
 
 
 %% -- Article metainformation (author, title, ...) -----------------------------
@@ -85,7 +89,7 @@ Health economic models simulate the costs and effects of health technologies for
   San Francisco\\
   E-mail: \email{jeroen.jansen@ucsf.edu}\\
 }
-
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
 \begin{document}
 
 
@@ -358,55 +362,105 @@ This model can be simulated using any of the model types described in Section~\r
 \subsection{Individual continuous time state transition model} \label{sec:ictstm-example}
 We set up the model by defining the model structure, target population, and treatment strategies of interest. The transitions are characterized by a matrix where each element denotes a transition from a row to a column. If a transition is not possible it is marked with \code{NA}; otherwise, an integer denotes the transition number.
 
-<<tmat>>=
-tmat <- rbind(
-  c(NA, 1, 2),
-  c(NA, NA, 3),
-  c(NA, NA, NA)
-)
-colnames(tmat) <- rownames(tmat) <- c("Stable", "Progression", "Dead")
-print(tmat)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> tmat <- rbind(
++    c(NA, 1, 2),
++    c(NA, NA, 3),
++    c(NA, NA, NA)
++  )
+R> colnames(tmat) <- rownames(tmat) <- c("Stable", "Progression", "Dead")
+R> print(tmat)
+\end{Sinput}
+\begin{Soutput}
+            Stable Progression Dead
+Stable          NA           1    2
+Progression     NA          NA    3
+Dead            NA          NA   NA
+\end{Soutput}
+\end{Schunk}
 
 The target population, treatment strategies, and (non-death) health states are stored in a \code{hesim_data} object and identified with integer valued identification variables (\code{patient_id}, \code{strategy_id}, and \code{state_id}). There are 3 treatment strategies: standard of care (SOC) and two new interventions (New 1 and New 2). The target population consists of a heterogeneous population of 1,000 patients, which is large enough to ensure that averages across patients in the individual simulation are reasonably stable. As we will see in the next section, patients can also be placed into subgroups (with a \code{grp_id} column) or given weights (with a \code{patient_wt} column) in the \code{patients} table; if left unspecified as done here, then all patients are assumed to belong to a single subgroup and are weighted equally.
 
-<<hesim_data>>=
-library("hesim")
-library("data.table")
-n_patients <- 1000
-patients <- data.table(
-  patient_id = 1:n_patients,
-  age = rnorm(n_patients, mean = 45, sd = 7),
-  female = rbinom(n_patients, size = 1, prob = .51)
-)
+\begin{Schunk}
+\begin{Sinput}
+> library("hesim")
+> library("data.table")
+> n_patients <- 1000
+> patients <- data.table(
++   patient_id = 1:n_patients,
++   age = rnorm(n_patients, mean = 45, sd = 7),
++   female = rbinom(n_patients, size = 1, prob = .51)
++ )
+> 
+> states <- data.table(
++   state_id = c(1, 2),
++   state_name = c("Stable", "Progression") 
++ )
+> 
+> strategies <- data.table(
++   strategy_id = 1:3,
++   strategy_name = c("SOC", "New 1", "New 2"),
++   soc = c(1, 0, 0),
++   new1 = c(0, 1, 0),
++   new2 = c(0, 0, 1)
++ )
+> 
+> hesim_dat <- hesim_data(
++   strategies = strategies,
++   patients = patients,
++   states = states
++ )
+> print(hesim_dat)
+\end{Sinput}
+\begin{Soutput}
+$strategies
+   strategy_id strategy_name soc new1 new2
+1:           1           SOC   1    0    0
+2:           2         New 1   0    1    0
+3:           3         New 2   0    0    1
 
-states <- data.table(
-  state_id = c(1, 2),
-  state_name = c("Stable", "Progression") 
-)
+$patients
+      patient_id      age female
+   1:          1 46.26366      1
+   2:          2 50.49314      1
+   3:          3 35.52785      1
+   4:          4 58.88309      0
+   5:          5 53.66930      0
+  ---                           
+ 996:        996 54.60555      0
+ 997:        997 50.10654      0
+ 998:        998 45.02035      0
+ 999:        999 45.60573      1
+1000:       1000 39.45426      0
 
-strategies <- data.table(
-  strategy_id = 1:3,
-  strategy_name = c("SOC", "New 1", "New 2"),
-  soc = c(1, 0, 0),
-  new1 = c(0, 1, 0),
-  new2 = c(0, 0, 1)
-)
+$states
+   state_id  state_name
+1:        1      Stable
+2:        2 Progression
 
-hesim_dat <- hesim_data(
-  strategies = strategies,
-  patients = patients,
-  states = states
-)
-print(hesim_dat)
-@
+attr(,"class")
+[1] "hesim_data"
+\end{Soutput}
+\end{Schunk}
 
 Labels for the identification variables in a \code{hesim_data} object can be generated with \code{get_labels()}. These can (as will be shown below), in turn, be passed to plotting and summary functions to create tables and figures with more informative labels. 
 
-<<labels_indiv>>=
-labs_indiv <- get_labels(hesim_dat)
-print(labs_indiv)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> labs_indiv <- get_labels(hesim_dat)
+R> print(labs_indiv)
+\end{Sinput}
+\begin{Soutput}
+$strategy_id
+  SOC New 1 New 2 
+    1     2     3 
+
+$state_id
+     Stable Progression       Death 
+          1           2           3 
+\end{Soutput}
+\end{Schunk}
 
 
 \subsubsection{Parameterization}
@@ -414,141 +468,227 @@ In a STM, the disease model governs transitions between health states. For now, 
 
 Multi-state data consists of one row for each possible transition from a given health state where at most one transition is observed and all others are censored. We use the simulated dataset \code{onc3} from the \pkg{hesim} package.
 
-<<ictstm_data>>=
-onc3[patient_id %in% c(1, 2)]
-@
+\begin{Schunk}
+\begin{Sinput}
+R> onc3[patient_id %in% c(1, 2)]
+\end{Sinput}
+\begin{Soutput}
+          from          to strategy_name female      age patient_id
+1:      Stable Progression         New 2      0 59.85813          1
+2:      Stable       Death         New 2      0 59.85813          1
+3: Progression       Death         New 2      0 59.85813          1
+4:      Stable Progression         New 2      0 62.57282          2
+5:      Stable       Death         New 2      0 62.57282          2
+   time_start time_stop status transition_id strategy_id      time
+1:   0.000000  2.420226      1             1           3  2.420226
+2:   0.000000  2.420226      0             2           3  2.420226
+3:   2.420226 14.620258      1             3           3 12.200032
+4:   0.000000  7.497464      0             1           3  7.497464
+5:   0.000000  7.497464      0             2           3  7.497464
+\end{Soutput}
+\end{Schunk}
 
 Multi-state models can be fit in one of two ways. First, a joint survival model with interaction terms for different transitions can be estimated, which is useful if there are constraints in the parameters, such as coefficients that are assumed equal across transitions. Here, we will take a second approach that is computationally more efficient and fit a separate model for each transition. We illustrate with parametric Weibull models but multiple distributions should be compared and evaluated in a real application \citep{williams2017cost}. The treatment effect is assumed to only influence transitions from stable disease since patients are assumed to switch to a 2L treatment after progression.
 
-<<ictstm_fits, warning = FALSE, message = FALSE>>=
-library("flexsurv")
-n_trans <- max(tmat, na.rm = TRUE) 
-wei_fits <- vector(length = n_trans, mode = "list")
-f <- as.formula(Surv(time, status) ~ factor(strategy_name) + female + age)
-for (i in 1:length(wei_fits)){
-  if (i == 3) f <- update(f, .~.-factor(strategy_name)) 
-  wei_fits[[i]] <- flexsurvreg(f, data = onc3, 
-                               subset = (transition_id == i),
-                               dist = "weibull")
-}
-wei_fits <- flexsurvreg_list(wei_fits)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> library("flexsurv")
+R> n_trans <- max(tmat, na.rm = TRUE) 
+R> wei_fits <- vector(length = n_trans, mode = "list")
+R> f <- as.formula(Surv(time, status) ~ factor(strategy_name) + female + age)
+R> for (i in 1:length(wei_fits)){
++    if (i == 3) f <- update(f, .~.-factor(strategy_name)) 
++    wei_fits[[i]] <- flexsurvreg(f, data = onc3, 
++                                 subset = (transition_id == i),
++                                 dist = "weibull")
++  }
+R> wei_fits <- flexsurvreg_list(wei_fits)
+\end{Sinput}
+\end{Schunk}
 
 Utility and cost values are stored in \code{stateval_tbl} objects. Utility is assumed to equal 0.8 with stable disease (standard error (SE) = 0.02) and 0.6 (SE = 0.05) with progressed disease. Utility values are assumed to follow a beta distribution, which can be parameterized either using its shape parameters or via the mean and standard error (in which case the method of moments is used to derive the shape parameters).
 
-<<ictstm_utility>>=
-utility_tbl <- stateval_tbl(
-  data.table(state_id = states$state_id,
-             mean = c(.8, .6),
-             se = c(0.02, .05)
-  ),
-  dist = "beta")
-print(utility_tbl)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> utility_tbl <- stateval_tbl(
++    data.table(state_id = states$state_id,
++               mean = c(.8, .6),
++               se = c(0.02, .05)
++    ),
++    dist = "beta")
+R> print(utility_tbl)
+\end{Sinput}
+\begin{Soutput}
+   state_id mean   se
+1:        1  0.8 0.02
+2:        2  0.6 0.05
+\end{Soutput}
+\end{Schunk}
 
 Both medical and drug costs are considered. Medical costs are assumed to follow a gamma distribution which is often appropriate for costs since they tend to be right skewed. Like utility, the distribution is characterized by the mean (\$2,000 with stable disease, \$9,500 with progressed disease) and SE (assumed equal to the mean) and the method of moments is used to derive the underlying shape and scale parameters.
 
-<<ictstm_medcosts>>=
-medcost_tbl <- stateval_tbl(
-  data.table(state_id = states$state_id,
-             mean = c(2000, 9500),
-             se = c(2000, 9500)
-  ),
-  dist = "gamma")
-print(medcost_tbl)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> medcost_tbl <- stateval_tbl(
++    data.table(state_id = states$state_id,
++               mean = c(2000, 9500),
++               se = c(2000, 9500)
++    ),
++    dist = "gamma")
+R> print(medcost_tbl)
+\end{Sinput}
+\begin{Soutput}
+   state_id mean   se
+1:        1 2000 2000
+2:        2 9500 9500
+\end{Soutput}
+\end{Schunk}
 
 Drug costs are assumed to be fixed (i.e., measured without uncertainty). When on 1L treatment, costs are \$2,000 with SOC, \$12,000 with New 1, and \$15,000 with New 2. All patients are assumed to switch to the same treatment at 2L after progression, which costs \$1,500 for the first 3 months and \$1,200 thereafter.
 
-<<ictstm_drugcost_setup, echo=FALSE, results="hide">>=
-n_times <- 2
-n_states <- nrow(states)
-n_strategies <- nrow(strategies)
-n_i <- n_states * n_times
-drugcost_dt <-  data.table(
-    strategy_id = rep(strategies$strategy_id, each = n_i),
-    state_id = rep(rep(states$state_id, each = n_times), n_strategies),
-    time_start = rep(c(0, 3/12), n_states * n_strategies),
-    est = c(2000, 2000, 1500, 1200,
-           12000, 12000, 1500, 1200,
-           15000, 15000, 1500, 1200)
-) 
-@
 
-<<ictstm_drugcost>>=
-drugcost_tbl <- stateval_tbl(
-  drugcost_dt,
-  dist = "fixed")
-print(drugcost_tbl)
-@
+
+\begin{Schunk}
+\begin{Sinput}
+R> drugcost_tbl <- stateval_tbl(
++    drugcost_dt,
++    dist = "fixed")
+R> print(drugcost_tbl)
+\end{Sinput}
+\begin{Soutput}
+    strategy_id state_id time_id time_start time_stop   est
+ 1:           1        1       1       0.00      0.25  2000
+ 2:           1        1       2       0.25       Inf  2000
+ 3:           1        2       1       0.00      0.25  1500
+ 4:           1        2       2       0.25       Inf  1200
+ 5:           2        1       1       0.00      0.25 12000
+ 6:           2        1       2       0.25       Inf 12000
+ 7:           2        2       1       0.00      0.25  1500
+ 8:           2        2       2       0.25       Inf  1200
+ 9:           3        1       1       0.00      0.25 15000
+10:           3        1       2       0.25       Inf 15000
+11:           3        2       1       0.00      0.25  1500
+12:           3        2       2       0.25       Inf  1200
+\end{Soutput}
+\end{Schunk}
 
 \subsubsection{Simulation}
 Before constructing each submodel, we specify the number of parameter samples that will be drawn for the PSA.
 
-<<ictstm_n_samples>>=
-n_samples <- 1000
-@
+\begin{Schunk}
+\begin{Sinput}
+R> n_samples <- 1000
+\end{Sinput}
+\end{Schunk}
 
 The input data for the transition model consists of one row for each treatment strategy and patient and can be easily generated from a \code{hesim_data} object with the \code{expand()} function.
 
-<<ictstm_transmod_data>>=
-transmod_data <- expand(hesim_dat,
-                        by = c("strategies", "patients"))
-head(transmod_data)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> transmod_data <- expand(hesim_dat,
++                          by = c("strategies", "patients"))
+R> head(transmod_data)
+\end{Sinput}
+\begin{Soutput}
+   strategy_id patient_id strategy_name soc new1 new2      age female
+1:           1          1           SOC   1    0    0 46.26366      1
+2:           1          2           SOC   1    0    0 50.49314      1
+3:           1          3           SOC   1    0    0 35.52785      1
+4:           1          4           SOC   1    0    0 58.88309      0
+5:           1          5           SOC   1    0    0 53.66930      0
+6:           1          6           SOC   1    0    0 53.40432      1
+\end{Soutput}
+\end{Schunk}
 
 The transition model is then constructed as a function of the parameters (from the fitted Weibull models) and the input data. We must also specify the allowed transitions, the desired number of PSA samples, the "clock" (recall that we used a clock reset approach when fitting the Weibull models), and the starting age of the patients. Parameters for the PSA are, by default, drawn from the multivariate normal distribution of the maximum likelihood estimate of the regression coefficients, although we make this explicit with the \code{uncertainty} argument. The starting age of the patients is useful because it allows us to specify a maximum age for patients during the simulation, ensuring that the simulated patients do not live unrealistically long lives. 
 
-<<ictstm_transmod>>=
-transmod <- create_IndivCtstmTrans(wei_fits, transmod_data,
-                                   trans_mat = tmat, n = n_samples,
-                                   uncertainty = "normal",
-                                   clock = "reset",
-                                   start_age = patients$age)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> transmod <- create_IndivCtstmTrans(wei_fits, transmod_data,
++                                     trans_mat = tmat, n = n_samples,
++                                     uncertainty = "normal",
++                                     clock = "reset",
++                                     start_age = patients$age)
+\end{Sinput}
+\end{Schunk}
 
 The utility and cost models can be easily constructed from the \code{stateval_tbl} objects with the \code{create_StateVals()} function, in which the (transformed) parameters are \code{tparams_mean} objects. The \code{hesim_data} object provides the information required to ensure that state values are constant within groups not specified within a particular \code{stateval_tbl}; for instance, since utility only varies by health state, it is assumed constant across patients, treatment strategies, and time. The models for each cost category are combined in a list.
   
-<<ictstm_stvalmods>>=
-utilitymod <- create_StateVals(utility_tbl, n = n_samples, 
-                               hesim_data = hesim_dat)
-drugcostmod <- create_StateVals(drugcost_tbl, n = n_samples,
-                                time_reset = TRUE, hesim_data = hesim_dat)
-medcostmod <- create_StateVals(medcost_tbl, n = n_samples,
-                               hesim_data = hesim_dat)
-costmods <- list(Drug = drugcostmod,
-                 Medical = medcostmod)
-@
+\begin{Schunk}
+\begin{Sinput}
+> utilitymod <- create_StateVals(utility_tbl, n = n_samples, 
++                                hesim_data = hesim_dat)
+> drugcostmod <- create_StateVals(drugcost_tbl, n = n_samples,
++                                 time_reset = TRUE, hesim_data = hesim_dat)
+> medcostmod <- create_StateVals(medcost_tbl, n = n_samples,
++                                hesim_data = hesim_dat)
+> costmods <- list(Drug = drugcostmod,
++                  Medical = medcostmod)
+\end{Sinput}
+\end{Schunk}
 
 The complete economic model is constructed by combining the transition, utility, and cost submodels.
 
-<<ictstm_econmod>>=
-ictstm <- IndivCtstm$new(trans_model = transmod,
-                         utility_model = utilitymod,
-                         cost_models = costmods)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> ictstm <- IndivCtstm$new(trans_model = transmod,
++                           utility_model = utilitymod,
++                           cost_models = costmods)
+\end{Sinput}
+\end{Schunk}
 
 Once the economic model has been constructed, it is straightforward to simulate outcomes. Trajectories through the multi-state model are simulated with the \code{$sim_disease()} method with patients assumed to live to a maximum age of 100.
 
-<<ictstm_sim_disease>>=
-ictstm$sim_disease(max_age = 100)
-head(ictstm$disprog_)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> ictstm$sim_disease(max_age = 100)
+R> head(ictstm$disprog_)
+\end{Sinput}
+\begin{Soutput}
+   sample strategy_id patient_id grp_id from to final time_start
+1:      1           1          1      1    1  3     1   0.000000
+2:      1           1          2      1    1  2     0   0.000000
+3:      1           1          2      1    2  3     1   8.058198
+4:      1           1          3      1    1  2     0   0.000000
+5:      1           1          3      1    2  3     1  15.250551
+6:      1           1          4      1    1  3     1   0.000000
+   time_stop
+1: 11.183651
+2:  8.058198
+3: 12.794488
+4: 15.250551
+5: 23.791357
+6:  6.047286
+\end{Soutput}
+\end{Schunk}
 
 State probabilities (averaged across patients in a given subgroup) can be constructed from the disease progression simulation output with the \code{$sim_stateprobs()} method. As shown in Figure~\ref{fig:ictstm-stprobs}, patients using the newer treatments remain in stable disease longer and have longer expected survival.  
 
-<<ictstm_sim_stateprobs>>=
-ictstm$sim_stateprobs(t = seq(0, 30 , 1/12))
-head(ictstm$stateprobs_)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> ictstm$sim_stateprobs(t = seq(0, 30 , 1/12))
+R> head(ictstm$stateprobs_)
+\end{Sinput}
+\begin{Soutput}
+   sample strategy_id grp_id state_id          t  prob
+1:      1           1      1        1 0.00000000 1.000
+2:      1           1      1        1 0.08333333 1.000
+3:      1           1      1        1 0.16666667 1.000
+4:      1           1      1        1 0.25000000 0.999
+5:      1           1      1        1 0.33333333 0.998
+6:      1           1      1        1 0.41666667 0.996
+\end{Soutput}
+\end{Schunk}
 
 \code{autoplot()} methods are available to quickly visualize simulation output using \pkg{ggplot2} graphics \citep{wickham2016ggplot2}. State probabilities from such a plot are shown in Figure~\ref{fig:ictstm-stprobs}, with labels for the treatment strategies and health states based on the output of \code{get_labels()} produced above.
 
-<<ictstm_plot_stateprobs, fig.show = "hide">>=
-library("ggplot2")
-autoplot(ictstm$stateprobs_, labels = labs_indiv,
-         ci = FALSE) 
-@
+\begin{Schunk}
+\begin{Sinput}
+R> library("ggplot2")
+R> autoplot(ictstm$stateprobs_, labels = labs_indiv,
++           ci = FALSE) 
+\end{Sinput}
+\end{Schunk}
 
 \begin{figure}[h]
 \centering
@@ -558,24 +698,62 @@ autoplot(ictstm$stateprobs_, labels = labs_indiv,
 
 QALYs and costs are simulated from the disease progression simulation output using the utility and cost models with the \code{$sim_qalys()} and \code{$sim_costs()} methods. Outcomes are simulated for each discount rate specified with the \code{dr} argument. By default, \code{$sim_qalys()} will return life-years (i.e., a utility value of 1 for each year of life) in addition to QALYs. 
 
-<<ictstm_sim_qalys>>=
-ictstm$sim_qalys(dr = c(0,.03))
-head(ictstm$qalys_)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> ictstm$sim_qalys(dr = c(0,.03))
+R> head(ictstm$qalys_)
+\end{Sinput}
+\begin{Soutput}
+   sample strategy_id grp_id state_id dr    qalys      lys
+1:      1           1      1        1  0 4.933188 6.374648
+2:      1           1      1        2  0 3.233055 5.255885
+3:      1           2      1        1  0 5.604984 7.242740
+4:      1           2      1        2  0 2.683823 4.363013
+5:      1           3      1        1  0 6.289275 8.126979
+6:      1           3      1        2  0 2.915707 4.739981
+\end{Soutput}
+\end{Schunk}
 
-<<ictstm_sim_costs>>=
-ictstm$sim_costs(dr = .03)
-head(ictstm$costs_)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> ictstm$sim_costs(dr = .03)
+R> head(ictstm$costs_)
+\end{Sinput}
+\begin{Soutput}
+   sample strategy_id grp_id state_id   dr category      costs
+1:      1           1      1        1 0.03     Drug  11352.373
+2:      1           1      1        2 0.03     Drug   4691.177
+3:      1           2      1        1 0.03     Drug  76292.008
+4:      1           2      1        2 0.03     Drug   3819.849
+5:      1           3      1        1 0.03     Drug 105209.810
+6:      1           3      1        2 0.03     Drug   4042.658
+\end{Soutput}
+\end{Schunk}
 
 For a given subgroup, QALYs and costs are simulated for each PSA sample, treatment strategy, and health state. They are summarized with the \code{$summarize()} method, which first sums across health states and then computes a (weighted) average across patients, by PSA sample, treatment strategy, and subgroup. The output is a generic cost-effectiveness object (of class \code{ce}) that can be used to perform CEA as demonstrated in Section~\ref{sec:cea}. Here, we use the \code{summary()} method to summarize the results and make use of the ``pipes'' from the \pkg{magrittr} to nicely format the output. 
 
-<<ictstm_summarize>>=
-library("magrittr")
-ce_sim_ictstm <- ictstm$summarize()
-summary(ce_sim_ictstm, labels = labs_indiv) %>%
-  format()
-@
+\begin{Schunk}
+\begin{Sinput}
+R> library("magrittr")
+R> ce_sim_ictstm <- ictstm$summarize()
+R> summary(ce_sim_ictstm, labels = labs_indiv) %>%
++    format()
+\end{Sinput}
+\begin{Soutput}
+   Discount rate        Outcome                      SOC
+1:          0.00          QALYs        7.87 (7.12, 8.60)
+2:          0.03          QALYs        6.58 (6.03, 7.14)
+3:          0.03    Costs: Drug  15,352 (14,431, 16,234)
+4:          0.03 Costs: Medical  46,784 (4,518, 144,256)
+5:          0.03   Costs: total 62,136 (19,888, 159,037)
+                       New 1                      New 2
+1:         8.59 (7.81, 9.40)         9.20 (8.42, 10.06)
+2:         7.10 (6.52, 7.69)          7.52 (6.96, 8.11)
+3:   78,465 (73,854, 83,200)  105,306 (99,228, 111,686)
+4:   46,222 (4,543, 137,303)    46,840 (4,746, 143,093)
+5: 124,687 (82,038, 218,484) 152,146 (109,625, 245,279)
+\end{Soutput}
+\end{Schunk}
 
 %% -- Partitioned survival model -----------------------------------------------
 \subsection{Partitioned survival model} \label{sec:psm-example}
@@ -583,159 +761,227 @@ In the previous section a multi-state model was fit to IPD. Partitioned survival
 
 Since a PSM is a cohort model, the \code{hesim_data} object must be modified accordingly. We now assume that the cohort can be characterized by four representative patients, each given an equal weight. We consider separate subgroups (identified with \code{grp_id}) for males and females. 
 
-<<psm_hesim_data>>=
-hesim_dat$patients <- data.table(
-  patient_id = 1:4,
-  grp_id = c(1, 1, 2, 2),
-  patient_wt = rep(1/4, 4),
-  age = c(55, 65, 55, 65),
-  female = c(1, 1, 0, 0),
-  grp_name = rep(c("Female", "Male"), 
-                 each = 2)
-)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> hesim_dat$patients <- data.table(
++    patient_id = 1:4,
++    grp_id = c(1, 1, 2, 2),
++    patient_wt = rep(1/4, 4),
++    age = c(55, 65, 55, 65),
++    female = c(1, 1, 0, 0),
++    grp_name = rep(c("Female", "Male"), 
++                   each = 2)
++  )
+\end{Sinput}
+\end{Schunk}
 
 Since there are now subgroups, we generate new labels that include the subgroup variables.
 
-<<labels_cohort>>=
-labs_cohort <- get_labels(hesim_dat)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> labs_cohort <- get_labels(hesim_dat)
+\end{Sinput}
+\end{Schunk}
 
 \subsubsection{Parameterization}
 A multi-state dataset can be converted into a dataset with one row per patient and outcomes for PFS and OS using the function \code{as_pfs_os()}. 
 
-<<psm_data>>=
-onc_pfs_os <- as_pfs_os(onc3, patient_vars = c("patient_id", "female", "age", 
-                                               "strategy_name"))
-onc_pfs_os[patient_id %in% c(1, 2)]
-@
+\begin{Schunk}
+\begin{Sinput}
+R> onc_pfs_os <- as_pfs_os(onc3, patient_vars = c("patient_id", "female", "age", 
++                                                 "strategy_name"))
+R> onc_pfs_os[patient_id %in% c(1, 2)]
+\end{Sinput}
+\begin{Soutput}
+   patient_id female      age strategy_name pfs_time pfs_status
+1:          1      0 59.85813         New 2 2.420226          1
+2:          2      0 62.57282         New 2 7.497464          0
+   os_status   os_time
+1:         1 14.620258
+2:         0  7.497464
+\end{Soutput}
+\end{Schunk}
 
 Survival models must be fit for both PFS and OS. To imitate a realistic scenario, we assume that IPD is only available for SOC and that relative treatment effects are estimated with aggregate data (e.g., using a NMA). As such, we start by fitting Weibull models for SOC. 
 
 One difficulty with partitioned survival analysis is that it does not account for the correlation in the survival endpoints and the curves may consequently cross during the PSA. One way to better account for correlations between the endpoints is to draw PSA samples via bootstrapping whereby the PFS and OS models are refit repeatedly to resamples of the estimation dataset. To allow for bootstrapping we create a \code{partsurvfit} object, which stores both the survival models and the estimation data.
 
-<<psm_fits_soc>>=
-onc_pfs_os_soc <- onc_pfs_os[strategy_name == "SOC"]
-fit_pfs_soc_wei <- flexsurvreg(
-  Surv(pfs_time, pfs_status) ~ female,
-  data = onc_pfs_os_soc,
-  dist = "weibull")
-
-fit_os_soc_wei <- flexsurvreg(
-  Surv(os_time, os_status) ~  female,
-  data = onc_pfs_os_soc,
-  dist = "weibull")
-
-psmfit_soc_wei <- partsurvfit(
-  flexsurvreg_list(pfs = fit_pfs_soc_wei, os = fit_os_soc_wei),
-  data = onc_pfs_os_soc
-)
-@
+\begin{Schunk}
+\begin{Sinput}
+> onc_pfs_os_soc <- onc_pfs_os[strategy_name == "SOC"]
+> fit_pfs_soc_wei <- flexsurvreg(
++   Surv(pfs_time, pfs_status) ~ female,
++   data = onc_pfs_os_soc,
++   dist = "weibull")
+> 
+> fit_os_soc_wei <- flexsurvreg(
++   Surv(os_time, os_status) ~  female,
++   data = onc_pfs_os_soc,
++   dist = "weibull")
+> 
+> psmfit_soc_wei <- partsurvfit(
++   flexsurvreg_list(pfs = fit_pfs_soc_wei, os = fit_os_soc_wei),
++   data = onc_pfs_os_soc
++ )
+\end{Sinput}
+\end{Schunk}
 
 The relative treatment effects are available (from a hypothetical external analysis) in terms of regression coefficients for the scale parameter on the log scale. The matrices \code{coef_pfs_wei} and \code{coef_os_wei} contain samples of the treatment effects for the PSA. We display the first 6 rows of the PFS coefficients. 
 
-<<psm_fits, include = FALSE>>=
-# Create dummies
-onc_pfs_os[, new1 := ifelse(strategy_name == "New 1", 1, 0)]
-onc_pfs_os[, new2 := ifelse(strategy_name == "New 2", 1, 0)]
 
-# Fit models
-fit_pfs_wei <- flexsurv::flexsurvreg(
-  Surv(pfs_time, pfs_status) ~ female + new1 + new2,
-  data = onc_pfs_os,
-  dist = "weibull")
 
-fit_os_wei <- flexsurvreg(
-  Surv(os_time, os_status) ~ female + new1 + new2,
-  data = onc_pfs_os,
-  dist = "weibull")
-
-# Extract relative treatment effects
-params_pfs_wei <- create_params(fit_pfs_wei, n = n_samples)
-params_os_wei <- create_params(fit_os_wei, n = n_samples)
-coef_pfs_wei <- params_pfs_wei$coefs$scale[, c("new1", "new2")]
-coef_os_wei <- params_os_wei$coefs$scale[, c("new1", "new2")]
-@
-
-<<psm_coefs>>=
-head(coef_pfs_wei)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> head(coef_pfs_wei)
+\end{Sinput}
+\begin{Soutput}
+          new1      new2
+[1,] 0.1814189 0.2654431
+[2,] 0.1390351 0.2907570
+[3,] 0.1298460 0.2307868
+[4,] 0.1729702 0.3143110
+[5,] 0.1988663 0.3179721
+[6,] 0.1305311 0.2261630
+\end{Soutput}
+\end{Schunk}
 
 The parameters for utility and medical costs remain the same as in the previous section. We do, however, modify drug costs. Since we are no longer using an individual-level model, costs cannot vary as a function of time in a health state. We now assume conservatively that drug costs remain at their initial level when in the progression state.  
 
-<<psm_drugcost>>=
-drugcost_tbl <- stateval_tbl(
-  drugcost_dt[time_start ==  0][, time_start := NULL],
-  dist = "fixed")
-print(drugcost_tbl)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> drugcost_tbl <- stateval_tbl(
++    drugcost_dt[time_start ==  0][, time_start := NULL],
++    dist = "fixed")
+R> print(drugcost_tbl)
+\end{Sinput}
+\begin{Soutput}
+   strategy_id state_id   est
+1:           1        1  2000
+2:           1        2  1500
+3:           2        1 12000
+4:           2        2  1500
+5:           3        1 15000
+6:           3        2  1500
+\end{Soutput}
+\end{Schunk}
 
 \subsubsection{Simulation}
 As with  the multi-state model, input data for the survival models is constructed with the \code{expand()} function.
 
-<<psm_survmods_data>>=
-survmods_data <- expand(hesim_dat, by = c("strategies", "patients"))
-head(survmods_data)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> survmods_data <- expand(hesim_dat, by = c("strategies", "patients"))
+R> head(survmods_data)
+\end{Sinput}
+\begin{Soutput}
+   strategy_id patient_id strategy_name soc new1 new2 grp_id
+1:           1          1           SOC   1    0    0      1
+2:           1          2           SOC   1    0    0      1
+3:           1          3           SOC   1    0    0      2
+4:           1          4           SOC   1    0    0      2
+5:           2          1         New 1   0    1    0      1
+6:           2          2         New 1   0    1    0      1
+   patient_wt age female grp_name
+1:       0.25  55      1   Female
+2:       0.25  65      1   Female
+3:       0.25  55      0     Male
+4:       0.25  65      0     Male
+5:       0.25  55      1   Female
+6:       0.25  65      1   Female
+\end{Soutput}
+\end{Schunk}
 
 Since we did not fit a survival regression model containing both the baseline risk and relative treatment effects, the survival parameter object must be constructed manually. We obtain the parameters of the fitted Weibull regression models with the generic function \code{create_params()}, and then manually add the relative treatment effects to the coefficients for the scale parameters. (Note that if we had not fit a model for SOC, the survival parameter objects could have still been constructed with \code{params_surv()}.) 
 
 The parameters for SOC are drawn by bootstrapping. Although this better accounts for the correlation between PFS and OS, it is slower than drawing the parameters from a multivariate normal distribution (as employed in Section~\ref{sec:ictstm-example}) because the survival models are refit for each PSA sample. We use the \code{max_errors} argument to allow for errors during some of the bootstrap replications (e.g., if a model fails to converge).
 
-<<psm_survmods_params, warning = FALSE>>=
-survmods_params <- create_params(psmfit_soc_wei, n = n_samples, 
-                                 uncertainty = "bootstrap", 
-                                 max_errors = 5, silent = TRUE)
-survmods_params$pfs$coefs$scale <- cbind(survmods_params$pfs$coefs$scale,
-                                         coef_pfs_wei)
-survmods_params$os$coefs$scale <- cbind(survmods_params$os$coefs$scale,
-                                        coef_os_wei)
-survmods_params$pfs$coefs$scale[1:2, ]
-@
+\begin{Schunk}
+\begin{Sinput}
+R> survmods_params <- create_params(psmfit_soc_wei, n = n_samples, 
++                                   uncertainty = "bootstrap", 
++                                   max_errors = 5, silent = TRUE)
+R> survmods_params$pfs$coefs$scale <- cbind(survmods_params$pfs$coefs$scale,
++                                           coef_pfs_wei)
+R> survmods_params$os$coefs$scale <- cbind(survmods_params$os$coefs$scale,
++                                          coef_os_wei)
+R> survmods_params$pfs$coefs$scale[1:2, ]
+\end{Sinput}
+\begin{Soutput}
+     (Intercept)     female      new1      new2
+[1,]    1.784666 -0.1364781 0.1814189 0.2654431
+[2,]    1.776743 -0.1173777 0.1390351 0.2907570
+\end{Soutput}
+\end{Schunk}
 
 Survival curves for both PFS and OS are predicted using the \code{PsmCurves} class, which is setup using the input data and the parameters of the Weibull model. However, since we manually created the parameter object---meaning that the model terms were not generated using a formula interface---the input data must contain each term contained in the parameter object. We must consequently create a column of ones for the intercept.
 
-<<psm_survmods>>=
-survmods_data[, ("(Intercept)") := 1]
-survmods <- create_PsmCurves(survmods_params, 
-                             input_data = survmods_data)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> survmods_data[, ("(Intercept)") := 1]
+R> survmods <- create_PsmCurves(survmods_params, 
++                               input_data = survmods_data)
+\end{Sinput}
+\end{Schunk}
 
 We re-instantiate all of the utility and cost models. This is necessary because our patient population changed and we are now only making predictions for 4 representative patients (rather than 1,000 in the individual simulation). The \code{hesim_data} argument to \code{create_StateVals()} does this for us automatically. 
 
-<<psm_stvalmods>>=
-utilitymod <- create_StateVals(utility_tbl, n = n_samples, 
-                               hesim_data = hesim_dat)
-drugcostmod <- create_StateVals(drugcost_tbl, n = n_samples, 
-                                hesim_data = hesim_dat)
-medcostmod <- create_StateVals(medcost_tbl, n = n_samples, 
-                               hesim_data = hesim_dat)
-costmods <- list(Drug = drugcostmod, Medical = medcostmod)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> utilitymod <- create_StateVals(utility_tbl, n = n_samples, 
++                                 hesim_data = hesim_dat)
+R> drugcostmod <- create_StateVals(drugcost_tbl, n = n_samples, 
++                                  hesim_data = hesim_dat)
+R> medcostmod <- create_StateVals(medcost_tbl, n = n_samples, 
++                                 hesim_data = hesim_dat)
+R> costmods <- list(Drug = drugcostmod, Medical = medcostmod)
+\end{Sinput}
+\end{Schunk}
 
 Now that the survival, utility, and cost submodels have been constructed, we can instantiate the complete PSM.  
 
-<<psm_econmod>>=
-psm <- Psm$new(survival_models = survmods,
-               utility_model = utilitymod,
-               cost_models = costmods)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> psm <- Psm$new(survival_models = survmods,
++                 utility_model = utilitymod,
++                 cost_models = costmods)
+\end{Sinput}
+\end{Schunk}
 
 We first simulate survival curves by month for 30 years. Survival curves produced using \code{autoplot()} are displayed in Figure~\ref{fig:psm-survival}. 
 
-<<psm_sim_survival>>=
-times <- seq(0, 30, by = .1)
-psm$sim_survival(t = times)
-head(psm$survival_)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> times <- seq(0, 30, by = .1)
+R> psm$sim_survival(t = times)
+R> head(psm$survival_)
+\end{Sinput}
+\begin{Soutput}
+   sample strategy_id patient_id grp_id patient_wt curve   t
+1:      1           1          1      1       0.25     1 0.0
+2:      1           1          1      1       0.25     1 0.1
+3:      1           1          1      1       0.25     1 0.2
+4:      1           1          1      1       0.25     1 0.3
+5:      1           1          1      1       0.25     1 0.4
+6:      1           1          1      1       0.25     1 0.5
+    survival
+1: 1.0000000
+2: 0.9998540
+3: 0.9993126
+4: 0.9982992
+5: 0.9967670
+6: 0.9946815
+\end{Soutput}
+\end{Schunk}
 
-<<psm_plot_survival, fig.show = "hide">>=
-autoplot(psm$survival_, 
-         labels = c(labs_cohort,
-                    list(curve = c("PFS" = 1, "OS" = 2))
-                    ),
-         ci = TRUE, ci_style = "ribbon")
-@
+\begin{Schunk}
+\begin{Sinput}
+R> autoplot(psm$survival_, 
++           labels = c(labs_cohort,
++                      list(curve = c("PFS" = 1, "OS" = 2))
++                      ),
++           ci = TRUE, ci_style = "ribbon")
+\end{Sinput}
+\end{Schunk}
 
 \begin{figure}[h]
 \centering
@@ -745,175 +991,281 @@ autoplot(psm$survival_,
 
 State probabilities are easily computed from these survival curves with the \code{$sim_stateprobs()} method. The area under the PFS curve is the proportion of patients in stable disease while the area between the PFS and OS curves is the proportion of patients whose disease has progressed.
 
-<<psm_sim_stateprobs>>=
-psm$sim_stateprobs()
-psm$stateprobs_[sample == 1 & patient_id == 1 & state_id == 2 & t == 12]
-@
+\begin{Schunk}
+\begin{Sinput}
+R> psm$sim_stateprobs()
+R> psm$stateprobs_[sample == 1 & patient_id == 1 & state_id == 2 & t == 12]
+\end{Sinput}
+\begin{Soutput}
+   sample strategy_id patient_id grp_id patient_wt state_id  t
+1:      1           1          1      1       0.25        2 12
+2:      1           2          1      1       0.25        2 12
+3:      1           3          1      1       0.25        2 12
+        prob
+1: 0.3215069
+2: 0.3934037
+3: 0.4148810
+\end{Soutput}
+\end{Schunk}
 
 QALYs and costs are simulated using the same \code{sim_qalys()} and \code{sim_costs()} methods as in the previous section, and the results are summarized in the same fashion as well. A difference, however, is that we now use the \code{by_grp = TRUE} option to summarize costs and QALYs by subgroup (rather than aggregating across all groups). 
 
-<<psm_costs_qalys>>=
-psm$sim_qalys(dr = .03) 
-psm$sim_costs(dr = .03)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> psm$sim_qalys(dr = .03) 
+R> psm$sim_costs(dr = .03)
+\end{Sinput}
+\end{Schunk}
 
-<<psm_summary>>=
-ce_sim_psm <- psm$summarize(by_grp = TRUE)
-summary(ce_sim_psm, labels = labs_cohort) %>%
-  format()
-@
+\begin{Schunk}
+\begin{Sinput}
+R> ce_sim_psm <- psm$summarize(by_grp = TRUE)
+R> summary(ce_sim_psm, labels = labs_cohort) %>%
++    format()
+\end{Sinput}
+\begin{Soutput}
+    Group Discount rate        Outcome                      SOC
+1: Female          0.03          QALYs        6.10 (5.55, 6.63)
+2: Female          0.03    Costs: Drug  15,225 (14,629, 15,900)
+3: Female          0.03 Costs: Medical  52,296 (4,435, 180,774)
+4: Female          0.03   Costs: total 67,521 (19,657, 195,939)
+5:   Male          0.03          QALYs        6.51 (5.99, 7.08)
+6:   Male          0.03    Costs: Drug  16,247 (15,553, 17,004)
+7:   Male          0.03 Costs: Medical  52,677 (4,767, 171,325)
+8:   Male          0.03   Costs: total 68,924 (20,902, 187,307)
+                       New 1                      New 2
+1:         6.61 (6.00, 7.22)          6.96 (6.36, 7.60)
+2:   66,473 (62,592, 70,188)    88,466 (83,561, 93,548)
+3:   52,717 (4,871, 171,715)    53,138 (5,156, 169,727)
+4: 119,189 (70,613, 239,546)  141,604 (92,445, 260,157)
+5:         7.05 (6.46, 7.70)          7.42 (6.81, 8.07)
+6:   74,027 (69,772, 78,081)   98,691 (93,156, 104,387)
+7:   52,709 (5,188, 165,850)    52,874 (5,417, 162,113)
+8: 126,736 (78,810, 238,080) 151,565 (103,556, 262,961)
+\end{Soutput}
+\end{Schunk}
 
 %% -- Cohort discrete time state transition model ------------------------------
 \subsection{Cohort disctete time state transition model} \label{sec:cdtstm-example}
 The third model type supported by \pkg{hesim} is the cDTSTM. Although it is commonly used in health economics, the approaches taken in Section~\ref{sec:ictstm-example} and \ref{sec:psm-example} make better use of the data if the time-to-event outcomes are continuously observed. Unfortunately, observations are sometimes only collected at arbitrary times, which results in what is referred to as panel data. This may, for instance, occur in routine practice oncology data when progression of disease is not continuously evaluated. To facilitate analysis of this type of data, we have converted the \code{onc3} dataset from above into panel form. 
 
-<<cdtstm_data, warning = FALSE>>=
-head(onc3p)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> head(onc3p)
+\end{Sinput}
+\begin{Soutput}
+         state strategy_name female      age patient_id      time
+1:      Stable         New 2      0 59.85813          1  0.000000
+2: Progression         New 2      0 59.85813          1  2.420226
+3:       Death         New 2      0 59.85813          1 14.620258
+4:      Stable         New 2      0 62.57282          2  0.000000
+5:      Stable         New 2      0 62.57282          2  7.497464
+6:      Stable           SOC      1 61.44379          3  0.000000
+   strategy_id state_id
+1:           3        1
+2:           3        2
+3:           3        3
+4:           3        1
+5:           3        1
+6:           1        1
+\end{Soutput}
+\end{Schunk}
 
 \subsubsection{Parameterization}
 As in Section~\ref{sec:psm-example}, we consider a case where IPD is available for SOC but aggregate-level data is used to estimate the relative treatment effects. When exact transition times are not observed, the survival models estimated in Section~\ref{sec:ictstm-example} are inappropriate. The \pkg{msm} package can, however, be used to estimate models from such data. The loss of information does come at a price as only exponential and piecewise exponential models are possible. We illustrate by fitting an exponential multi-state model for SOC using \pkg{msm}. (Note that if exact times were observed and we set the argument \code{exacttimes = TRUE}, then the parameter estimates would be the same as an exponential model fit using \code{flexsurvreg()}.)
 
-<<cdtstm_fit_soc, warning = FALSE, message = FALSE>>=
-library("msm")
-qinit <- matrix(0, nrow = 3, ncol = 3)
-qinit[1, 2] <-  0.28; qinit[1, 3] <-  0.013; qinit[2, 3] <-  0.10
-msm_fit <- msm(state_id ~ time, subject = patient_id, 
-               data = onc3p[strategy_name == "SOC"],
-               exacttimes = FALSE,
-               covariates = ~ age + female,
-               qmatrix = qinit, gen.inits = FALSE)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> library("msm")
+R> qinit <- matrix(0, nrow = 3, ncol = 3)
+R> qinit[1, 2] <-  0.28; qinit[1, 3] <-  0.013; qinit[2, 3] <-  0.10
+R> msm_fit <- msm(state_id ~ time, subject = patient_id, 
++                 data = onc3p[strategy_name == "SOC"],
++                 exacttimes = FALSE,
++                 covariates = ~ age + female,
++                 qmatrix = qinit, gen.inits = FALSE)
+\end{Sinput}
+\end{Schunk}
 
-<<msm_exact, include = FALSE, message = FALSE>>=
-# msm with exact transition times
-tmat2 <- tmat; tmat2[is.na(tmat2)] <- 0
-msm_efit <- msm(state_id ~ time, subject = patient_id, 
-                data = onc3p[strategy_name == "SOC"],
-                qmatrix = tmat2, exacttimes = TRUE)
 
-# flexsurv with exponential model
-exp_fits <- vector(length = n_trans, mode = "list")
-for (i in 1:length(wei_fits)){
-  exp_fits[[i]] <- flexsurvreg(Surv(time, status) ~ 1, data = onc3, 
-                               subset = (transition_id == i & 
-                                         strategy_name == "SOC"),
-                               dist = "exponential")
-}
-
-# Compare
-msm_efit
-exp_fits[[1]]$res
-exp_fits[[2]]$res
-exp_fits[[3]]$res
-@
 
 We assume that the relative treatment effects were estimated as relative risks. Either a posterior distribution from a Bayesian analysis or parameters of a parametric distribution can be used. We use the latter approach here and assume that the relative risk is approximately normally distributed on the log scale. \pkg{hesim} provides the \code{define_rng()} and \code{eval_rng()} functions for defining and evaluating random number generators for a PSA. While standard functions in \proglang{R} could be used to draw random deviates from probability distributions instead, these functions can be more convenient for health economic modeling. Notable advantages include only needing to specify the number of random samples once, being able to pass moments of distributions as arguments (as in \code{stateval_tbl()}), and guaranteeing a common output (either a vector or a two-dimensional tabular object, with dimensions determined by the number or random samples). 
 
-<<cdtstm_params>>=
-params_rr <- list(
-  lrr_12_est = c(soc = log(1), new1 = log(.80), new2 = log(.71)),
-  lrr_12_se = c(soc = 0, new1 = .03, new2 = .04),
-  lrr_13_est = c(soc = log(1), new1 = log(.90), new2 = log(.85)),
-  lrr_13_se = c(soc = 0, new1 = .02, new2 = .03)
-)  
-
-params_rr_def <- define_rng({
-  list(
-    rr_12 = lognormal_rng(lrr_12_est, lrr_12_se),
-    rr_13 = lognormal_rng(lrr_13_est, lrr_13_se)
-  )}, n = n_samples)
-params_rr_rng <- eval_rng(params_rr_def, params_rr)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> params_rr <- list(
++    lrr_12_est = c(soc = log(1), new1 = log(.80), new2 = log(.71)),
++    lrr_12_se = c(soc = 0, new1 = .03, new2 = .04),
++    lrr_13_est = c(soc = log(1), new1 = log(.90), new2 = log(.85)),
++    lrr_13_se = c(soc = 0, new1 = .02, new2 = .03)
++  )  
+R> 
+R> params_rr_def <- define_rng({
++    list(
++      rr_12 = lognormal_rng(lrr_12_est, lrr_12_se),
++      rr_13 = lognormal_rng(lrr_13_est, lrr_13_se)
++    )}, n = n_samples)
+R> params_rr_rng <- eval_rng(params_rr_def, params_rr)
+\end{Sinput}
+\end{Schunk}
 
 In Sections~\ref{sec:ictstm-example} and \ref{sec:psm-example}, we constructed the disease model using parameter (i.e., \code{params_surv}) objects. Here, we will use a transformed parameter (i.e., \code{tparams_transprobs}) object, which is a very flexible way to construct the transition probability matrices for a cDTSTM. A \code{tparams_transprobs} object requires a 3-dimensional array of transition matrices, where the transition matrices are ordered by PSA sample, treatment strategy, patient, and optionally (in a time-inhomogeneous model) time interval.
 
 We start by predicting transition intensity matrices for SOC from the exponential multi-state model using the same input data used for the survival models in the PSM example. A prediction is made for each representative patient and samples of the transition intensity matrices are drawn for the PSA using an asymptotic normal approximation. The array contains $B \times N_p$ matrices where $B$ is the number of PSA samples and $N_p$ is the number of patients. 
 
-<<qmat_soc>>=
-transmod_data <- survmods_data
-qmat_soc <- qmatrix(msm_fit, 
-                    newdata = transmod_data[strategy_name == "SOC"],
-                    uncertainty = "normal", n = n_samples)
-dim(qmat_soc)
-qmat_soc[,, 1]
-@
+\begin{Schunk}
+\begin{Sinput}
+R> transmod_data <- survmods_data
+R> qmat_soc <- qmatrix(msm_fit, 
++                      newdata = transmod_data[strategy_name == "SOC"],
++                      uncertainty = "normal", n = n_samples)
+R> dim(qmat_soc)
+\end{Sinput}
+\begin{Soutput}
+[1]    3    3 4000
+\end{Soutput}
+\begin{Sinput}
+R> qmat_soc[,, 1]
+\end{Sinput}
+\begin{Soutput}
+           [,1]       [,2]       [,3]
+[1,] -0.3533989  0.3371267 0.01627226
+[2,]  0.0000000 -0.1190753 0.11907530
+[3,]  0.0000000  0.0000000 0.00000000
+\end{Soutput}
+\end{Schunk}
 
 Transition probability matrices of arbitrary duration are derived from the transition intensity matrices with the matrix exponential. We use a cycle length of 3 months.
 
-<<pmat_soc>>=
-cycle_len <- 1/4
-pmat_soc <- expmat(qmat_soc, t = cycle_len)
-pmat_soc[,, 1]
-@
+\begin{Schunk}
+\begin{Sinput}
+R> cycle_len <- 1/4
+R> pmat_soc <- expmat(qmat_soc, t = cycle_len)
+R> pmat_soc[,, 1]
+\end{Sinput}
+\begin{Soutput}
+          [,1]       [,2]       [,3]
+[1,] 0.9154407 0.07945955 0.00509979
+[2,] 0.0000000 0.97066990 0.02933010
+[3,] 0.0000000 0.00000000 1.00000000
+\end{Soutput}
+\end{Schunk}
 
 Identifiers for the complete array of transitions matrices (inclusive of SOC and the new interventions) are generated with \code{tpmatrix_id()}.
 
-<<transprobs_id>>=
-tpmat_id <- tpmatrix_id(transmod_data, n_samples)
-head(tpmat_id)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> tpmat_id <- tpmatrix_id(transmod_data, n_samples)
+R> head(tpmat_id)
+\end{Sinput}
+\begin{Soutput}
+   sample strategy_id patient_id grp_id patient_wt
+1:      1           1          1      1       0.25
+2:      1           1          2      1       0.25
+3:      1           1          3      2       0.25
+4:      1           1          4      2       0.25
+5:      1           2          1      1       0.25
+6:      1           2          2      1       0.25
+\end{Soutput}
+\end{Schunk}
 
 Relative risks can be predicted for each row of the input data and each sample of the coefficients for the PSA using matrix multiplication. In particular, let $x$ be a $N \times k$ matrix where $N$ is the number of rows of the input data and $k$ is the number of predictors, and $\beta$ be a $B \times k$ matrix where each row contains a given sample for the PSA. The function \code{xbeta} performs the matrix multiplication operation $x\beta^T$ to produce a $N \times B$ matrix of predicted relative risks and then ``flattens'' the matrix to create a single vector of length $N \times B$.
 
-<<xbeta>>=
-xbeta <- function(x, beta) c(x %*% t(beta))
-@
+\begin{Schunk}
+\begin{Sinput}
+R> xbeta <- function(x, beta) c(x %*% t(beta))
+\end{Sinput}
+\end{Schunk}
 
 We use this function to predict distributions of relative risks (for the transitions stable $\rightarrow$ progression and stable $\rightarrow$ death) for each row of the input data as a function of the three treatment strategies. 
 
-<<rr>>=
-x_rr <- as.matrix(transmod_data[, .(soc, new1, new2)])
-rr <- cbind(xbeta(x_rr, params_rr_rng$rr_12),
-            xbeta(x_rr, params_rr_rng$rr_13))
-head(rr) 
-@
+\begin{Schunk}
+\begin{Sinput}
+> x_rr <- as.matrix(transmod_data[, .(soc, new1, new2)])
+> rr <- cbind(xbeta(x_rr, params_rr_rng$rr_12),
++             xbeta(x_rr, params_rr_rng$rr_13))
+> head(rr) 
+\end{Sinput}
+\begin{Soutput}
+         [,1]      [,2]
+[1,] 1.000000 1.0000000
+[2,] 1.000000 1.0000000
+[3,] 1.000000 1.0000000
+[4,] 1.000000 1.0000000
+[5,] 0.833283 0.9039595
+[6,] 0.833283 0.9039595
+\end{Soutput}
+\end{Schunk}
 
 Relative risks are applied to the elements (stable $\rightarrow$ progression (1, 2) and stable $\rightarrow$ death (1, 3)) of each transition probability matrix for SOC with \code{apply_rr()}. The result is an array of matrices for each PSA sample, treatment strategy,  and representative patient, as desired. The \code{tparams_transprobs} object can then be created by simply combining the transition probability matrices and the identification dataset. 
 
-<<apply_rr>>=
-pmat <- apply_rr(pmat_soc, rr = rr,
-                 index = list(c(1, 2), c(1, 3)))
-tprobs <- tparams_transprobs(pmat, tpmat_id)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> pmat <- apply_rr(pmat_soc, rr = rr,
++                   index = list(c(1, 2), c(1, 3)))
+R> tprobs <- tparams_transprobs(pmat, tpmat_id)
+\end{Sinput}
+\end{Schunk}
 
 
 \subsubsection{Simulation}
 Once the model has been parameterized, the simulation is straightforward. The transition model depends only on the transition probability matrices and the cycle length,
 
-<<dtstm_transmod>>=
-transmod <- CohortDtstmTrans$new(params = tprobs, 
-                                 cycle_length = cycle_len)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> transmod <- CohortDtstmTrans$new(params = tprobs, 
++                                   cycle_length = cycle_len)
+\end{Sinput}
+\end{Schunk}
 
 and the complete economic model is again instantiated from the transition, utility, and cost submodels. 
 
-<<dtstm_econmod>>=
-cdtstm <- CohortDtstm$new(trans_model = transmod,
-                          utility_model = psm$utility_model,
-                          cost_models = psm$cost_models)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> cdtstm <- CohortDtstm$new(trans_model = transmod,
++                            utility_model = psm$utility_model,
++                            cost_models = psm$cost_models)
+\end{Sinput}
+\end{Schunk}
 
 We simulate state probabilities for 120 cycles (i.e., 30 years).
 
-<<cdtstm_sim_stateprobs>>=
-cdtstm$sim_stateprobs(n_cycles = 30/cycle_len)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> cdtstm$sim_stateprobs(n_cycles = 30/cycle_len)
+\end{Sinput}
+\end{Schunk}
 
 QALYs and costs are again simulated using a 3 percent discount rate
 
-<<cdtstm_sim_qalys_costs>>=
-cdtstm$sim_qalys(dr = .03)
-cdtstm$sim_costs(dr = .03)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> cdtstm$sim_qalys(dr = .03)
+R> cdtstm$sim_costs(dr = .03)
+\end{Sinput}
+\end{Schunk}
 
 and the results are summarized. The \code{by_grp} argument of \code{$summarize()} is by default \code{FALSE} so costs and QALYs are aggregated across subgroups here. 
 
-<<cdtstm_summary>>=
-ce_sim_cdtstm <- cdtstm$summarize()
-summary(ce_sim_cdtstm, labels = labs_cohort) %>%
-  format()
-@
+\begin{Schunk}
+\begin{Sinput}
+R> ce_sim_cdtstm <- cdtstm$summarize()
+R> summary(ce_sim_cdtstm, labels = labs_cohort) %>%
++    format()
+\end{Sinput}
+\begin{Soutput}
+   Discount rate        Outcome                      SOC
+1:          0.03          QALYs        5.56 (4.78, 6.26)
+2:          0.03    Costs: Drug  13,862 (12,563, 14,711)
+3:          0.03 Costs: Medical  62,515 (4,186, 217,838)
+4:          0.03   Costs: total 76,378 (18,215, 231,236)
+                       New 1                     New 2
+1:         5.92 (5.10, 6.67)         6.14 (5.27, 6.84)
+2:   46,196 (41,201, 50,104)   60,714 (53,418, 66,584)
+3:   62,011 (4,351, 223,642)   61,636 (4,671, 213,904)
+4: 108,207 (50,113, 267,630) 122,350 (64,868, 274,308)
+\end{Soutput}
+\end{Schunk}
 
 %% -- Cost-effectiveness analysis ----------------------------------------------
 \section{Cost-effectiveness analysis} \label{sec:cea}
@@ -946,27 +1298,77 @@ There are three additional cases. Treatment $1$ is considered to \emph{dominate}
 \subsection{Application}
 Uncertainty over $\theta$ is captured using the PSA. The simulated distribution of QALYs and costs for each treatment strategy can be produced with the \code{$summarize()} method as was demonstrated in Section~\ref{sec:illustrative-example}. We will use the output from the iCTSTM in this example. 
 
-<<ce>>=
-ce_sim_ictstm
-@
+\begin{Schunk}
+\begin{Sinput}
+R> ce_sim_ictstm
+\end{Sinput}
+\begin{Soutput}
+$costs
+      category   dr sample strategy_id     costs grp_id
+   1:     Drug 0.03      1           1  16043.55      1
+   2:     Drug 0.03      1           2  80111.86      1
+   3:     Drug 0.03      1           3 109252.47      1
+   4:     Drug 0.03      2           1  14645.16      1
+   5:     Drug 0.03      2           2  77962.49      1
+  ---                                                  
+8996:    total 0.03    999           2  95024.16      1
+8997:    total 0.03    999           3 122357.69      1
+8998:    total 0.03   1000           1  52638.13      1
+8999:    total 0.03   1000           2 119410.47      1
+9000:    total 0.03   1000           3 151164.45      1
+
+$qalys
+        dr sample strategy_id    qalys grp_id
+   1: 0.00      1           1 8.166243      1
+   2: 0.00      1           2 8.288806      1
+   3: 0.00      1           3 9.204982      1
+   4: 0.00      2           1 7.440970      1
+   5: 0.00      2           2 8.414148      1
+  ---                                        
+5996: 0.03    999           2 7.134710      1
+5997: 0.03    999           3 7.399217      1
+5998: 0.03   1000           1 6.435002      1
+5999: 0.03   1000           2 7.103850      1
+6000: 0.03   1000           3 7.584523      1
+
+attr(,"class")
+[1] "ce"
+\end{Soutput}
+\end{Schunk}
 
 A CEA is performed from this output with the \code{cea()} and \code{cea_pw()} functions. \code{cea()} summarizes results by simultaneously accounting for each treatment strategy in the analysis, while \code{cea_pw()} summarizes ``pairwise'' results in which each treatment is compared to a comparator (in this case SOC). 
 
-<<cea>>=
-wtp <- seq(0, 250000, 500) 
-cea_ictstm <- cea(ce_sim_ictstm, dr_costs = .03, dr_qalys = .03, k = wtp)
-cea_pw_ictstm <- cea_pw(ce_sim_ictstm, comparator = 1,
-                        dr_qalys = .03, dr_costs = .03,
-                        k = wtp)
-@
+\begin{Schunk}
+\begin{Sinput}
+> wtp <- seq(0, 250000, 500) 
+> cea_ictstm <- cea(ce_sim_ictstm, dr_costs = .03, dr_qalys = .03, k = wtp)
+> cea_pw_ictstm <- cea_pw(ce_sim_ictstm, comparator = 1,
++                         dr_qalys = .03, dr_costs = .03,
++                         k = wtp)
+\end{Sinput}
+\end{Schunk}
 
 \subsubsection{Incremental cost-effectiveness ratio}
 The \code{cea_pw()} function computes the ICER. A summary table is produced with \code{icer()} and \code{format()} formats the table for pretty printing. The argument \code{k} is the WTP threshold and is used to compute the INMB. Estimates of incremental QALYs and incremental costs are computed by averaging over PSA samples. By default, 95\% confidence intervals are presented and are computed using quantiles from the PSA.
 
-<<cea_icer>>=
-icer(cea_pw_ictstm, k = 100000, labels = labs_indiv) %>%
-  format()
-@
+\begin{Schunk}
+\begin{Sinput}
+R> icer(cea_pw_ictstm, k = 100000, labels = labs_indiv) %>%
++    format()
+\end{Sinput}
+\begin{Soutput}
+             Outcome                     New 1
+1: Incremental QALYs         0.52 (0.16, 0.90)
+2: Incremental costs   62,551 (51,685, 70,389)
+3:   Incremental NMB -11,003 (-42,132, 21,247)
+4:              ICER                   121,345
+                      New 2
+1:        0.93 (0.58, 1.27)
+2: 90,010 (77,342, 100,581)
+3:  3,223 (-28,582, 33,456)
+4:                   96,543
+\end{Soutput}
+\end{Schunk}
 
 \subsubsection{Representing decision uncertainty}
 A number of common measures can be used to represent decision uncertainty from a CEA, including cost-effectiveness planes, cost-effectiveness acceptability curves (CEACs), cost-effectiveness acceptability frontiers (CEAFs), and the expected value of perfect information (EVPI). Plots using \pkg{ggplot2} can be quickly generated with the \code{plot_ceplane()}, \code{plot_ceac()}, \code{plot_ceaf()}, and \code{plot_evpi()} functions, respectively. Output from \code{cea()} and \code{cea_pw()} is readily available, so users may create custom plots as well. Example figures from the code that follows are shown in Figure~\ref{fig:cea-plots}.
@@ -1010,22 +1412,30 @@ A number of common measures can be used to represent decision uncertainty from a
 
 The cost-effectiveness plane plots the incremental effectiveness of a treatment strategy (relative to a comparator) against the incremental cost of the treatment strategy. The plot is useful because it demonstrates both the uncertainty and the magnitude of the estimates. Each point on the plot is from a particular draw from the PSA. Data for plotting a cost-effectiveness plane comes from the \code{delta} output generated from \code{cea_pw()}.
 
-<<ce_plane, fig.height = 3, fig.width = 4.5, fig.show="hide">>=
-plot_ceplane(cea_pw_ictstm, labels = labs_indiv)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> plot_ceplane(cea_pw_ictstm, labels = labs_indiv)
+\end{Sinput}
+\end{Schunk}
 
 The CEAC can be generated based on simultaneous comparisons of all treatment strategies or by comparing each treatment strategy to a single comparator. The former is the probability that each strategy is the most cost-effective and is available from the \code{mce} element produced by \code{cea()}. The relevant information for the latter is available from the \code{ceac} element produced by \code{cea_pw()}, and is the probability that each treatment is more cost-effective than the comparator.
 
-<<ceac, fig.height = 3, fig.width = 4.5, fig.show = "hide">>=
-plot_ceac(cea_ictstm, labels = labs_indiv)
-plot_ceac(cea_pw_ictstm, labels = labs_indiv)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> plot_ceac(cea_ictstm, labels = labs_indiv)
+\end{Sinput}
+\begin{Sinput}
+R> plot_ceac(cea_pw_ictstm, labels = labs_indiv)
+\end{Sinput}
+\end{Schunk}
 
 One drawback of the CEAC is that the probability of being cost-effective cannot be used to determine the optimal treatment option. Instead, if the objective is to maximize health gain, then decisions should be based on the expected NMB. The CEAF, which plots the probability that the optimal treatment strategy (i.e., the strategy with the highest expected NMB) is cost-effective, is appropriate in this context. A CEAF curve can be created by using the \code{best} column from the \code{mce} element to subset to the treatment strategy with the highest expected NMB for each WTP value.
 
-<<ceaf, fig.height = 3, fig.width = 4.5, fig.show = "hide">>=
-plot_ceaf(cea_ictstm, labels = labs_indiv)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> plot_ceaf(cea_ictstm, labels = labs_indiv)
+\end{Sinput}
+\end{Schunk}
 
 A limitation of CEACs and CEAFs is that they ignore the magnitude of QALY or cost gains. A measure which combines the probability of being most effective with the magnitude of the expected NMB is the EVPI. Intuitively, the EVPI provides an estimate of the amount that a decision maker would be willing to pay to collect additional data and completely eliminate uncertainty. Mathematically, the EVPI is defined as the difference between the maximum expected NMB given perfect information and the maximum expected NMB given current information. In other words, we calculate the NMB for the optimal treatment strategy for each random draw of the parameters and compare that to the NMB for the treatment strategy that is optimal when averaging across all parameters,
 
@@ -1035,9 +1445,11 @@ EVPI = E_\theta \left[\max_j NMB(j, \theta)\right] - \max_j E_\theta \left [ NMB
 
 The \code{cea()} function performs the EVPI calculation across all simulation draws from the PSA and for a number of WTP values. The kink in the plot represents the WTP value where the optimal strategy changes.
 
-<<evpi, fig.height = 3, fig.width = 4.5, fig.show = "hide">>=
-plot_evpi(cea_ictstm, labels = labs_indiv)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> plot_evpi(cea_ictstm, labels = labs_indiv)
+\end{Sinput}
+\end{Schunk}
 
 %% -- Discussion ---------------------------------------------------------------
 \section{Discussion} \label{sec:discussion}
@@ -1065,9 +1477,7 @@ A number of extensions of the current version of \pkg{hesim} would be helpful. F
 
 
 %% -- Session info -------------------------------------------------------------
-<<sessionInfo, include=FALSE>>=
-sessionInfo()
-@
+
 
 %% -- Bibliography -------------------------------------------------------------
 %% - References need to be provided in a .bib BibTeX database.
