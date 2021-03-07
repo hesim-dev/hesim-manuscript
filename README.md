@@ -4,7 +4,7 @@ This repository contains the code, text, and results for the manuscript describi
 knitr::purl(input = "manuscript.rnw", output = "replication.R")
 ```
 
-Package dependencies are manged with the [`renv`](https://rstudio.github.io/renv/articles/renv.html) package. You can install all `R` packages used in the replication file with:
+HTML output from a better commented version of this replication file can be viewed [here](https://hesim-dev.github.io/hesim-manuscript/replication). Package dependencies are managed with the [`renv`](https://rstudio.github.io/renv/articles/renv.html) package. You can install all `R` packages used in the replication file with:
 
 ```{r}
 renv::restore()
