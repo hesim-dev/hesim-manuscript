@@ -384,34 +384,34 @@ The target population, treatment strategies, and (non-death) health states are s
 
 \begin{Schunk}
 \begin{Sinput}
-> library("hesim")
-> library("data.table")
-> n_patients <- 1000
-> patients <- data.table(
-+   patient_id = 1:n_patients,
-+   age = rnorm(n_patients, mean = 45, sd = 7),
-+   female = rbinom(n_patients, size = 1, prob = .51)
-+ )
-> 
-> states <- data.table(
-+   state_id = c(1, 2),
-+   state_name = c("Stable", "Progression") 
-+ )
-> 
-> strategies <- data.table(
-+   strategy_id = 1:3,
-+   strategy_name = c("SOC", "New 1", "New 2"),
-+   soc = c(1, 0, 0),
-+   new1 = c(0, 1, 0),
-+   new2 = c(0, 0, 1)
-+ )
-> 
-> hesim_dat <- hesim_data(
-+   strategies = strategies,
-+   patients = patients,
-+   states = states
-+ )
-> print(hesim_dat)
+R> library("hesim")
+R> library("data.table")
+R> n_patients <- 1000
+R> patients <- data.table(
++    patient_id = 1:n_patients,
++    age = rnorm(n_patients, mean = 45, sd = 7),
++    female = rbinom(n_patients, size = 1, prob = .51)
++  )
+R> 
+R> states <- data.table(
++    state_id = c(1, 2),
++    state_name = c("Stable", "Progression") 
++  )
+R> 
+R> strategies <- data.table(
++    strategy_id = 1:3,
++    strategy_name = c("SOC", "New 1", "New 2"),
++    soc = c(1, 0, 0),
++    new1 = c(0, 1, 0),
++    new2 = c(0, 0, 1)
++  )
+R> 
+R> hesim_dat <- hesim_data(
++    strategies = strategies,
++    patients = patients,
++    states = states
++  )
+R> print(hesim_dat)
 \end{Sinput}
 \begin{Soutput}
 $strategies
@@ -616,14 +616,14 @@ The utility and cost models can be easily constructed from the \code{stateval_tb
   
 \begin{Schunk}
 \begin{Sinput}
-> utilitymod <- create_StateVals(utility_tbl, n = n_samples, 
-+                                hesim_data = hesim_dat)
-> drugcostmod <- create_StateVals(drugcost_tbl, n = n_samples,
-+                                 time_reset = TRUE, hesim_data = hesim_dat)
-> medcostmod <- create_StateVals(medcost_tbl, n = n_samples,
-+                                hesim_data = hesim_dat)
-> costmods <- list(Drug = drugcostmod,
-+                  Medical = medcostmod)
+R> utilitymod <- create_StateVals(utility_tbl, n = n_samples, 
++                                 hesim_data = hesim_dat)
+R> drugcostmod <- create_StateVals(drugcost_tbl, n = n_samples,
++                                  time_reset = TRUE, hesim_data = hesim_dat)
+R> medcostmod <- create_StateVals(medcost_tbl, n = n_samples,
++                                 hesim_data = hesim_dat)
+R> costmods <- list(Drug = drugcostmod,
++                   Medical = medcostmod)
 \end{Sinput}
 \end{Schunk}
 
@@ -808,21 +808,21 @@ One difficulty with partitioned survival analysis is that it does not account fo
 
 \begin{Schunk}
 \begin{Sinput}
-> onc_pfs_os_soc <- onc_pfs_os[strategy_name == "SOC"]
-> fit_pfs_soc_wei <- flexsurvreg(
-+   Surv(pfs_time, pfs_status) ~ female,
-+   data = onc_pfs_os_soc,
-+   dist = "weibull")
-> 
-> fit_os_soc_wei <- flexsurvreg(
-+   Surv(os_time, os_status) ~  female,
-+   data = onc_pfs_os_soc,
-+   dist = "weibull")
-> 
-> psmfit_soc_wei <- partsurvfit(
-+   flexsurvreg_list(pfs = fit_pfs_soc_wei, os = fit_os_soc_wei),
-+   data = onc_pfs_os_soc
-+ )
+R> onc_pfs_os_soc <- onc_pfs_os[strategy_name == "SOC"]
+R> fit_pfs_soc_wei <- flexsurvreg(
++    Surv(pfs_time, pfs_status) ~ female,
++    data = onc_pfs_os_soc,
++    dist = "weibull")
+R> 
+R> fit_os_soc_wei <- flexsurvreg(
++    Surv(os_time, os_status) ~  female,
++    data = onc_pfs_os_soc,
++    dist = "weibull")
+R> 
+R> psmfit_soc_wei <- partsurvfit(
++    flexsurvreg_list(pfs = fit_pfs_soc_wei, os = fit_os_soc_wei),
++    data = onc_pfs_os_soc
++  )
 \end{Sinput}
 \end{Schunk}
 
@@ -1181,10 +1181,10 @@ We use this function to predict distributions of relative risks (for the transit
 
 \begin{Schunk}
 \begin{Sinput}
-> x_rr <- as.matrix(transmod_data[, .(soc, new1, new2)])
-> rr <- cbind(xbeta(x_rr, params_rr_rng$rr_12),
-+             xbeta(x_rr, params_rr_rng$rr_13))
-> head(rr) 
+R> x_rr <- as.matrix(transmod_data[, .(soc, new1, new2)])
+R> rr <- cbind(xbeta(x_rr, params_rr_rng$rr_12),
++              xbeta(x_rr, params_rr_rng$rr_13))
+R> head(rr) 
 \end{Sinput}
 \begin{Soutput}
          [,1]      [,2]
@@ -1340,11 +1340,11 @@ A CEA is performed from this output with the \code{cea()} and \code{cea_pw()} fu
 
 \begin{Schunk}
 \begin{Sinput}
-> wtp <- seq(0, 250000, 500) 
-> cea_ictstm <- cea(ce_sim_ictstm, dr_costs = .03, dr_qalys = .03, k = wtp)
-> cea_pw_ictstm <- cea_pw(ce_sim_ictstm, comparator = 1,
-+                         dr_qalys = .03, dr_costs = .03,
-+                         k = wtp)
+R> wtp <- seq(0, 250000, 500) 
+R> cea_ictstm <- cea(ce_sim_ictstm, dr_costs = .03, dr_qalys = .03, k = wtp)
+R> cea_pw_ictstm <- cea_pw(ce_sim_ictstm, comparator = 1,
++                          dr_qalys = .03, dr_costs = .03,
++                          k = wtp)
 \end{Sinput}
 \end{Schunk}
 
