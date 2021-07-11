@@ -115,7 +115,7 @@ Despite their computational demands and foundations in statistics, health econom
 
 \pkg{hesim} is an \proglang{R} package that advances the functionality and performance of the existing software. Multiple model types are supported including cohort discrete time state transition models (cDTSTMs), N-state PSMs, and individual-level continuous time state transition models (iCTSTMs), encompassing both Markov (time-homogeneous and time-inhomogeneous) and semi-Markov processes. To maximize flexibility and facilitate integration of the statistical methods and economic model, parameters can be set by either fitting models in \proglang{R} or by inputting values obtained from external sources. So that individual-level simulation and PSA can be run quickly, \pkg{Rcpp} and \pkg{data.table} are heavily utilized. After simulating costs and quality-adjusted life-years (QALYs) from a PSA, decision analysis can be performed within a cost-effectiveness framework.
 
-The remainder of this paper is organized as follows. Section~\ref{sec:model-taxonomy} provides a mathematical description of the economic models supported by \pkg{hesim}. An overview of the coding framework is provided in Section~\ref{sec:framework}. An illustrative example using a three state model of disease progression in oncology is provided in Section~\ref{sec:illustrative-example}. Analyses are conducted for each of the three supported model types, illustrating approaches suitable for both patient-level and aggregate-level data. The cost-effectiveness framework is described in Section~\ref{sec:cea} along with worked examples based on the output from the prior section. Section~\ref{sec:discussion} discusses additional features not covered in this paper, makes comparisons to other software, and explores possible extensions. Finally, Section~\ref{sec:conclusion} concludes. 
+The remainder of this paper is organized as follows. Section~\ref{sec:model-taxonomy} provides a mathematical description of the economic models supported by \pkg{hesim}. An overview of the coding framework is provided in Section~\ref{sec:framework}. Section~\ref{sec:model-simulation} uses a three state model of disease progression in oncology to show how \pkg{hesim} can be used to simulate model outcomes. Analyses are conducted for each of the three supported model types, illustrating approaches suitable for both patient-level and aggregate-level data. The cost-effectiveness framework is described in Section~\ref{sec:cea} along with worked examples based on the output from the prior section. Section~\ref{sec:discussion} discusses additional features not covered in this paper, makes comparisons to other software, and explores possible extensions. Finally, Section~\ref{sec:conclusion} concludes. 
 
 Analyses were performed using \pkg{hesim} version \code{0.5.0}. All code including a replication \proglang{R} script for this paper is available at \url{https://github.com/hesim-dev/hesim-manuscript}.
 
@@ -162,7 +162,7 @@ In discrete time, the integral is approximated with
 \sum_{c = 1}^{C}f(t_c^{*})\Delta t_c,
 \end{equation}
 
-where $\Delta t_c = t_{c} - t_{c-1}$,  $t_c^{*}\in[t_{c-1},t_{c}]$, and $f(t)= z_h(t) e^{-rt} p_h(t)$. Three methods can be used to estimate $f(t_c^{*})$. First, a left Riemann sum uses values at the start of each time interval, $f(t_c^{*}) = f(t_{c-1})$. Second, a right Riemann sum uses values at the end of each time interval, $f(t_c^{*}) = f(t_{c})$. Finally, the trapezoid rule averages values at the start and end of each interval, $f(t_c^{*}) = \frac{1}{2}\Delta t_c[f(t_{c-1}) + f(t_{c})]$. 
+where $\Delta t_c = t_{c} - t_{c-1}$,  $t_c^{*}\in[t_{c-1},t_{c}]$, and $f(t)= z_h(t) e^{-rt} p_h(t)$. Three methods can be used to estimate $f(t_c^{*})$. First, a left Riemann sum uses values at the start of each time interval, $f(t_c^{*}) = f(t_{c-1})$. Second, a right Riemann sum uses values at the end of each time interval, $f(t_c^{*}) = f(t_{c})$. Finally, the trapezoid rule averages values at the start and end of each interval, $f(t_c^{*}) = \frac{1}{2}[f(t_{c-1}) + f(t_{c})]$. 
 
 \subsection{Individual continuous time state transition models} \label{sec:iCTSTMs}
 iCTSTMs simulate individual trajectories between health states using random number generation. Trajectories are simulated for multiple patients and expected costs and QALYs are computed by averaging across the simulated patients. A reasonably large number of patients must be simulated to ensure that expected values are stable \citep{ohagan2007monte}. 
@@ -331,8 +331,8 @@ Economic model & Disease progression  & QALYs & Costs \\
 \end{table}
 
 %% -- Illustrative example -----------------------------------------------------
-\section{Illustrative example} \label{sec:illustrative-example}
-We consider a three-state model commonly used in oncology. As shown in Figure~\ref{fig:three-state-model}, the three health states are stable disease (i.e., not progressed), progression, and death. Patients can transition to a more severe health state (stable $\rightarrow$ progression, stable $\rightarrow$ death, and progression $\rightarrow$ death) but cannot recover to a less severe health state. We assume that patients remain on first line (1L) treatment until progression, at which time they switch to a second line (2L) treatment.
+\section{Simulation of model outcomes} \label{sec:model-simulation}
+To demonstrate how \pkg{hesim} can be used to simulate outcomes from an economic model, we consider a three state model commonly used in oncology. As shown in Figure~\ref{fig:three-state-model}, the three health states are stable disease (i.e., not progressed), progression, and death. Patients can transition to a more severe health state (stable $\rightarrow$ progression, stable $\rightarrow$ death, and progression $\rightarrow$ death) but cannot recover to a less severe health state. We assume that patients remain on first line (1L) treatment until progression, at which time they switch to a second line (2L) treatment.
 
 
 \begin{figure}[h]
@@ -944,7 +944,7 @@ k > \frac{E_\theta[c_{1} - c_{0}]}{E_\theta[e_{1} - e_{0}]} = ICER.
 There are three additional cases. Treatment $1$ is considered to \emph{dominate} treatment $0$ if it is more effective and less costly. Treatment $1$ is \emph{dominated} by treatment $0$ if it is less effective and more costly. Finally, treatment $1$ is preferred to treatment $0$ if it is less effective and less costly when $k < ICER$. 
 
 \subsection{Application}
-Uncertainty over $\theta$ is captured using the PSA. The simulated distribution of QALYs and costs for each treatment strategy can be produced with the \code{$summarize()} method as was demonstrated in Section~\ref{sec:illustrative-example}. We will use the output from the iCTSTM in this example. 
+Uncertainty over $\theta$ is captured using the PSA. The simulated distribution of QALYs and costs for each treatment strategy can be produced with the \code{$summarize()} method as was demonstrated in Section~\ref{sec:model-simulation}. We will use the output from the iCTSTM in this example. 
 
 <<ce>>=
 ce_sim_ictstm
@@ -1041,7 +1041,7 @@ plot_evpi(cea_ictstm, labels = labs_indiv)
 
 %% -- Discussion ---------------------------------------------------------------
 \section{Discussion} \label{sec:discussion}
-This paper formally describes the economic models and cost-effectiveness framework used by the \pkg{hesim} package. An illustrative example is provided for a three state model commonly used to evaluate treatments in oncology. However, since \pkg{hesim} aims to be flexible, the example only covers a subset of the relevant modeling approaches and functionality. Additional examples as well as documentation for all functions and classes are provided on the package website (\url{https://hesim-dev.github.io/hesim/}). 
+This paper formally describes the economic models and cost-effectiveness framework used by the \pkg{hesim} package. An illustrative example was provided for a three state model commonly used to evaluate treatments in oncology. However, since \pkg{hesim} aims to be flexible, the example only covers a subset of the relevant modeling approaches and functionality. Additional examples as well as documentation for all functions and classes are provided on the package website (\url{https://hesim-dev.github.io/hesim/}). 
 
 One notable set of features not covered relates to the construction of transition probability matrices, the core of any cDTSTM. In Section~\ref{sec:cdtstm-example}, an approach was used that was tailored to a case in which transition intensity matrices were available for a reference treatment and relative treatment effects (i.e., relative risks) were available for the remaining competing interventions. To maximize efficiency, the matrix exponential was only applied where necessary (for SOC) and relative risks were applied to the transition probability matrices for SOC with the efficient \code{apply_rr()} function. 
 
