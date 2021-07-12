@@ -365,7 +365,7 @@ tmat <- rbind(
   c(NA, NA, NA)
 )
 colnames(tmat) <- rownames(tmat) <- c("Stable", "Progression", "Dead")
-print(tmat)
+tmat
 @
 
 The target population, treatment strategies, and (non-death) health states are stored in a \code{hesim_data} object and identified with integer valued identification variables (\code{patient_id}, \code{strategy_id}, and \code{state_id}). There are 3 treatment strategies: standard of care (SOC) and two new interventions (New 1 and New 2). The target population consists of a heterogeneous population of 1,000 patients, which is large enough to ensure that averages across patients in the individual simulation are reasonably stable. As we will see in the next section, patients can also be placed into subgroups (with a \code{grp_id} column) or given weights (with a \code{patient_wt} column) in the \code{patients} table; if left unspecified as done here, then all patients are assumed to belong to a single subgroup and are weighted equally.
@@ -398,14 +398,14 @@ hesim_dat <- hesim_data(
   patients = patients,
   states = states
 )
-print(hesim_dat)
+hesim_dat
 @
 
 Labels for the identification variables in a \code{hesim_data} object can be generated with \code{get_labels()}. These can (as will be shown below), in turn, be passed to plotting and summary functions to create tables and figures with more informative labels. 
 
 <<labels_indiv>>=
 labs_indiv <- get_labels(hesim_dat)
-print(labs_indiv)
+labs_indiv
 @
 
 
@@ -443,7 +443,7 @@ utility_tbl <- stateval_tbl(
              se = c(0.02, .05)
   ),
   dist = "beta")
-print(utility_tbl)
+utility_tbl
 @
 
 Both medical and drug costs are considered. Medical costs are assumed to follow a gamma distribution which is often appropriate for costs since they tend to be right skewed. Like utility, the distribution is characterized by the mean (\$2,000 with stable disease, \$9,500 with progressed disease) and SE (assumed equal to the mean) and the method of moments is used to derive the underlying shape and scale parameters.
@@ -455,7 +455,7 @@ medcost_tbl <- stateval_tbl(
              se = c(2000, 9500)
   ),
   dist = "gamma")
-print(medcost_tbl)
+medcost_tbl
 @
 
 Drug costs are assumed to be fixed (i.e., measured without uncertainty). When on 1L treatment, costs are \$2,000 with SOC, \$12,000 with New 1, and \$15,000 with New 2. All patients are assumed to switch to the same treatment at 2L after progression, which costs \$1,500 for the first 3 months and \$1,200 thereafter.
@@ -479,7 +479,7 @@ drugcost_dt <-  data.table(
 drugcost_tbl <- stateval_tbl(
   drugcost_dt,
   dist = "fixed")
-print(drugcost_tbl)
+drugcost_tbl
 @
 
 \subsubsection{Simulation}
@@ -667,7 +667,7 @@ The parameters for utility and medical costs remain the same as in the previous 
 drugcost_tbl <- stateval_tbl(
   drugcost_dt[time_start ==  0][, time_start := NULL],
   dist = "fixed")
-print(drugcost_tbl)
+drugcost_tbl
 @
 
 \subsubsection{Simulation}
