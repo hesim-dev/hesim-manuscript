@@ -1,4 +1,4 @@
-\begin{thebibliography}{42}
+\begin{thebibliography}{46}
 \newcommand{\enquote}[1]{``#1''}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
@@ -131,6 +131,36 @@ Dias S, Ades AE, Welton NJ, Jansen JP, Sutton AJ (2018).
 \newblock \emph{Network Meta-Analysis for Decision-Making}.
 \newblock John Wiley \& Sons.
 \newblock \doi{10.1002/9781118951651}.
+
+\bibitem[{Dowle and Srinivasan(2021)}]{dowle2021datatable}
+Dowle M, Srinivasan A (2021).
+\newblock \emph{data.table: Extension of `data.frame`}.
+\newblock R package version 1.14.0,
+  \urlprefix\url{https://CRAN.R-project.org/package=data.table}.
+
+\bibitem[{Eddelbuettel(2013)}]{eddelbuettel2013rcpp}
+Eddelbuettel D (2013).
+\newblock \emph{Seamless \proglang{R} and \proglang{C++} Integration with
+  {Rcpp}}.
+\newblock Springer, New York.
+\newblock \doi{10.1007/978-1-4614-6868-4}.
+\newblock ISBN 978-1-4614-6867-7.
+
+\bibitem[{Eddelbuettel and Balamuta(2018)}]{eddelbuettel2018rcpp}
+Eddelbuettel D, Balamuta JJ (2018).
+\newblock \enquote{{Extending \proglang{R} with \proglang{C++}: A Brief
+  Introduction to \pkg{Rcpp}}.}
+\newblock \emph{The American Statistician}, \textbf{72}(1), 28--36.
+\newblock \doi{10.1080/00031305.2017.1375990}.
+\newblock \urlprefix\url{https://doi.org/10.1080/00031305.2017.1375990}.
+
+\bibitem[{Eddelbuettel and Fran\c{c}ois(2011)}]{eddelbuettel2011rcpp}
+Eddelbuettel D, Fran\c{c}ois R (2011).
+\newblock \enquote{\pkg{Rcpp}: Seamless \proglang{R} and \proglang{C++}
+  Integration.}
+\newblock \emph{Journal of Statistical Software}, \textbf{40}(8), 1--18.
+\newblock \doi{10.18637/jss.v040.i08}.
+\newblock \urlprefix\url{https://www.jstatsoft.org/v40/i08/}.
 
 \bibitem[{Filipovi{\'c}-Pierucci \emph{et~al.}(2017)Filipovi{\'c}-Pierucci,
   Zarca, and Durand-Zaleski}]{filipovic2017markov}
