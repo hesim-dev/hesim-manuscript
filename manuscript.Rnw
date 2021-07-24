@@ -35,7 +35,7 @@ opts_chunk$set(
 @
 
 <<preliminaries, echo=FALSE, results="hide">>=
-options(prompt = "R> ", continue = "+  ", width = 70, useFancyQuotes = FALSE)
+options(prompt = "R> ", continue = "+  ", width = 76, useFancyQuotes = FALSE)
 ggplot2::theme_set(ggplot2::theme_bw())
 set.seed(102)
 @
@@ -359,11 +359,7 @@ This model can be simulated using any of the model types described in Section~\r
 We set up the model by defining the model structure, target population, and treatment strategies of interest. The transitions are characterized by a matrix where each element denotes a transition from a row to a column. If a transition is not possible it is marked with \code{NA}; otherwise, an integer denotes the transition number.
 
 <<tmat>>=
-tmat <- rbind(
-  c(NA, 1, 2),
-  c(NA, NA, 3),
-  c(NA, NA, NA)
-)
+tmat <- rbind(c(NA, 1, 2), c(NA, NA, 3), c(NA, NA, NA))
 colnames(tmat) <- rownames(tmat) <- c("Stable", "Progression", "Dead")
 tmat
 @
@@ -379,12 +375,10 @@ patients <- data.table(
   age = rnorm(n_patients, mean = 45, sd = 7),
   female = rbinom(n_patients, size = 1, prob = .51)
 )
-
 states <- data.table(
   state_id = c(1, 2),
   state_name = c("Stable", "Progression") 
 )
-
 strategies <- data.table(
   strategy_id = 1:3,
   strategy_name = c("SOC", "New 1", "New 2"),
@@ -392,7 +386,6 @@ strategies <- data.table(
   new1 = c(0, 1, 0),
   new2 = c(0, 0, 1)
 )
-
 hesim_dat <- hesim_data(
   strategies = strategies,
   patients = patients,
@@ -428,8 +421,7 @@ f <- as.formula(Surv(time, status) ~ factor(strategy_name) + female + age)
 for (i in 1:length(wei_fits)){
   if (i == 3) f <- update(f, .~.-factor(strategy_name)) 
   wei_fits[[i]] <- flexsurvreg(f, data = onc3, 
-                               subset = (transition_id == i),
-                               dist = "weibull")
+    subset = (transition_id == i), dist = "weibull")
 }
 wei_fits <- flexsurvreg_list(wei_fits)
 @
@@ -438,11 +430,13 @@ Utility and cost values are stored in \code{stateval_tbl} objects. Utility is as
 
 <<ictstm_utility>>=
 utility_tbl <- stateval_tbl(
-  data.table(state_id = states$state_id,
-             mean = c(.8, .6),
-             se = c(0.02, .05)
+  data.table(
+    state_id = states$state_id,
+    mean = c(.8, .6),
+    se = c(0.02, .05)
   ),
-  dist = "beta")
+  dist = "beta"
+)
 utility_tbl
 @
 
@@ -450,11 +444,13 @@ Both medical and drug costs are considered. Medical costs are assumed to follow 
 
 <<ictstm_medcosts>>=
 medcost_tbl <- stateval_tbl(
-  data.table(state_id = states$state_id,
-             mean = c(2000, 9500),
-             se = c(2000, 9500)
+  data.table(
+    state_id = states$state_id,
+    mean = c(2000, 9500),
+    se = c(2000, 9500)
   ),
-  dist = "gamma")
+  dist = "gamma"
+)
 medcost_tbl
 @
 
@@ -466,19 +462,19 @@ n_states <- nrow(states)
 n_strategies <- nrow(strategies)
 n_i <- n_states * n_times
 drugcost_dt <-  data.table(
-    strategy_id = rep(strategies$strategy_id, each = n_i),
-    state_id = rep(rep(states$state_id, each = n_times), n_strategies),
-    time_start = rep(c(0, 3/12), n_states * n_strategies),
-    est = c(2000, 2000, 1500, 1200,
-           12000, 12000, 1500, 1200,
-           15000, 15000, 1500, 1200)
+  strategy_id = rep(strategies$strategy_id, each = n_i),
+  state_id = rep(rep(states$state_id, each = n_times), n_strategies),
+  time_start = rep(c(0, 3/12), n_states * n_strategies),
+  est = c(
+    2000, 2000, 1500, 1200,
+    12000, 12000, 1500, 1200,
+    15000, 15000, 1500, 1200
+  )
 ) 
 @
 
 <<ictstm_drugcost>>=
-drugcost_tbl <- stateval_tbl(
-  drugcost_dt,
-  dist = "fixed")
+drugcost_tbl <- stateval_tbl(drugcost_dt, dist = "fixed")
 drugcost_tbl
 @
 
@@ -492,8 +488,7 @@ n_samples <- 1000
 The input data for the transition model consists of one row for each treatment strategy and patient and can be easily generated from a \code{hesim_data} object with the \code{expand()} function.
 
 <<ictstm_transmod_data>>=
-transmod_data <- expand(hesim_dat,
-                        by = c("strategies", "patients"))
+transmod_data <- expand(hesim_dat, by = c("strategies", "patients"))
 head(transmod_data)
 @
 
@@ -501,31 +496,27 @@ The transition model is then constructed as a function of the parameters (from t
 
 <<ictstm_transmod>>=
 transmod <- create_IndivCtstmTrans(wei_fits, transmod_data,
-                                   trans_mat = tmat, n = n_samples,
-                                   uncertainty = "normal",
-                                   clock = "reset",
-                                   start_age = patients$age)
+  trans_mat = tmat, n = n_samples, uncertainty = "normal",
+  clock = "reset", start_age = patients$age)
 @
 
 The utility and cost models can be easily constructed from the \code{stateval_tbl} objects with the \code{create_StateVals()} function, in which the (transformed) parameters are \code{tparams_mean} objects. The \code{hesim_data} object provides the information required to ensure that state values are constant within groups not specified within a particular \code{stateval_tbl}; for instance, since utility only varies by health state, it is assumed constant across patients, treatment strategies, and time. The models for each cost category are combined in a list.
   
 <<ictstm_stvalmods>>=
 utilitymod <- create_StateVals(utility_tbl, n = n_samples, 
-                               hesim_data = hesim_dat)
+  hesim_data = hesim_dat)
 drugcostmod <- create_StateVals(drugcost_tbl, n = n_samples,
-                                time_reset = TRUE, hesim_data = hesim_dat)
+  time_reset = TRUE, hesim_data = hesim_dat)
 medcostmod <- create_StateVals(medcost_tbl, n = n_samples,
-                               hesim_data = hesim_dat)
-costmods <- list(Drug = drugcostmod,
-                 Medical = medcostmod)
+  hesim_data = hesim_dat)
+costmods <- list(Drug = drugcostmod, Medical = medcostmod)
 @
 
 The complete economic model is constructed by combining the transition, utility, and cost submodels.
 
 <<ictstm_econmod>>=
-ictstm <- IndivCtstm$new(trans_model = transmod,
-                         utility_model = utilitymod,
-                         cost_models = costmods)
+ictstm <- IndivCtstm$new(trans_model = transmod, 
+  utility_model = utilitymod, cost_models = costmods)
 @
 
 Once the economic model has been constructed, it is straightforward to simulate outcomes. Trajectories through the multi-state model are simulated with the \code{$sim_disease()} method with patients assumed to live to a maximum age of 100.
@@ -546,8 +537,7 @@ head(ictstm$stateprobs_)
 
 <<ictstm_plot_stateprobs, fig.show = "hide">>=
 library("ggplot2")
-autoplot(ictstm$stateprobs_, labels = labs_indiv,
-         ci = FALSE) 
+autoplot(ictstm$stateprobs_, labels = labs_indiv, ci = FALSE) 
 @
 
 \begin{figure}[h]
@@ -590,8 +580,7 @@ hesim_dat$patients <- data.table(
   patient_wt = rep(1/4, 4),
   age = c(55, 65, 55, 65),
   female = c(1, 1, 0, 0),
-  grp_name = rep(c("Female", "Male"), 
-                 each = 2)
+  grp_name = rep(c("Female", "Male"), each = 2)
 )
 @
 
@@ -605,8 +594,8 @@ labs_cohort <- get_labels(hesim_dat)
 A multi-state dataset can be converted into a dataset with one row per patient and outcomes for PFS and OS using the function \code{as_pfs_os()}. 
 
 <<psm_data>>=
-onc_pfs_os <- as_pfs_os(onc3, patient_vars = c("patient_id", "female", "age", 
-                                               "strategy_name"))
+onc_pfs_os <- as_pfs_os(onc3, 
+  patient_vars = c("patient_id", "female", "age", "strategy_name"))
 onc_pfs_os[patient_id %in% c(1, 2)]
 @
 
@@ -616,20 +605,13 @@ One difficulty with partitioned survival analysis is that it does not account fo
 
 <<psm_fits_soc>>=
 onc_pfs_os_soc <- onc_pfs_os[strategy_name == "SOC"]
-fit_pfs_soc_wei <- flexsurvreg(
-  Surv(pfs_time, pfs_status) ~ female,
-  data = onc_pfs_os_soc,
-  dist = "weibull")
-
-fit_os_soc_wei <- flexsurvreg(
-  Surv(os_time, os_status) ~  female,
-  data = onc_pfs_os_soc,
-  dist = "weibull")
-
+fit_pfs_soc_wei <- flexsurvreg(Surv(pfs_time, pfs_status) ~ female,
+  data = onc_pfs_os_soc, dist = "weibull")
+fit_os_soc_wei <- flexsurvreg(Surv(os_time, os_status) ~  female,
+  data = onc_pfs_os_soc, dist = "weibull")
 psmfit_soc_wei <- partsurvfit(
-  flexsurvreg_list(pfs = fit_pfs_soc_wei, os = fit_os_soc_wei),
-  data = onc_pfs_os_soc
-)
+  flexsurvreg_list(pfs = fit_pfs_soc_wei, os = fit_os_soc_wei), 
+  data = onc_pfs_os_soc)
 @
 
 The relative treatment effects are available (from a hypothetical external analysis) in terms of regression coefficients for the scale parameter on the log scale. The matrices \code{coef_pfs_wei} and \code{coef_os_wei} contain samples of the treatment effects for the PSA. We display the first 6 rows of the PFS coefficients. 
@@ -640,15 +622,11 @@ onc_pfs_os[, new1 := ifelse(strategy_name == "New 1", 1, 0)]
 onc_pfs_os[, new2 := ifelse(strategy_name == "New 2", 1, 0)]
 
 # Fit models
-fit_pfs_wei <- flexsurv::flexsurvreg(
-  Surv(pfs_time, pfs_status) ~ female + new1 + new2,
-  data = onc_pfs_os,
-  dist = "weibull")
+fit_pfs_wei <- flexsurvreg(Surv(pfs_time, pfs_status) ~ female + new1 + new2,
+  data = onc_pfs_os, dist = "weibull")
 
-fit_os_wei <- flexsurvreg(
-  Surv(os_time, os_status) ~ female + new1 + new2,
-  data = onc_pfs_os,
-  dist = "weibull")
+fit_os_wei <- flexsurvreg(Surv(os_time, os_status) ~ female + new1 + new2,
+  data = onc_pfs_os, dist = "weibull")
 
 # Extract relative treatment effects
 params_pfs_wei <- create_params(fit_pfs_wei, n = n_samples)
@@ -666,7 +644,8 @@ The parameters for utility and medical costs remain the same as in the previous 
 <<psm_drugcost>>=
 drugcost_tbl <- stateval_tbl(
   drugcost_dt[time_start ==  0][, time_start := NULL],
-  dist = "fixed")
+  dist = "fixed"
+)
 drugcost_tbl
 @
 
@@ -684,12 +663,11 @@ The parameters for SOC are drawn by bootstrapping. Although this better accounts
 
 <<psm_survmods_params, warning = FALSE>>=
 survmods_params <- create_params(psmfit_soc_wei, n = n_samples, 
-                                 uncertainty = "bootstrap", 
-                                 max_errors = 5, silent = TRUE)
+  uncertainty = "bootstrap", max_errors = 5, silent = TRUE)
 survmods_params$pfs$coefs$scale <- cbind(survmods_params$pfs$coefs$scale,
-                                         coef_pfs_wei)
+  coef_pfs_wei)
 survmods_params$os$coefs$scale <- cbind(survmods_params$os$coefs$scale,
-                                        coef_os_wei)
+  coef_os_wei)
 survmods_params$pfs$coefs$scale[1:2, ]
 @
 
@@ -697,28 +675,26 @@ Survival curves for both PFS and OS are predicted using the \code{PsmCurves} cla
 
 <<psm_survmods>>=
 survmods_data[, ("(Intercept)") := 1]
-survmods <- create_PsmCurves(survmods_params, 
-                             input_data = survmods_data)
+survmods <- create_PsmCurves(survmods_params, input_data = survmods_data)
 @
 
 We re-instantiate all of the utility and cost models. This is necessary because our patient population changed and we are now only making predictions for 4 representative patients (rather than 1,000 in the individual simulation). The \code{hesim_data} argument to \code{create_StateVals()} does this for us automatically. 
 
 <<psm_stvalmods>>=
 utilitymod <- create_StateVals(utility_tbl, n = n_samples, 
-                               hesim_data = hesim_dat)
+  hesim_data = hesim_dat)
 drugcostmod <- create_StateVals(drugcost_tbl, n = n_samples, 
-                                hesim_data = hesim_dat)
+  hesim_data = hesim_dat)
 medcostmod <- create_StateVals(medcost_tbl, n = n_samples, 
-                               hesim_data = hesim_dat)
+  hesim_data = hesim_dat)
 costmods <- list(Drug = drugcostmod, Medical = medcostmod)
 @
 
 Now that the survival, utility, and cost submodels have been constructed, we can instantiate the complete PSM.  
 
 <<psm_econmod>>=
-psm <- Psm$new(survival_models = survmods,
-               utility_model = utilitymod,
-               cost_models = costmods)
+psm <- Psm$new(survival_models = survmods, utility_model = utilitymod,
+  cost_models = costmods)
 @
 
 We first simulate survival curves by month for 30 years. Survival curves produced using \code{autoplot()} are displayed in Figure~\ref{fig:psm-survival}. 
@@ -731,10 +707,8 @@ head(psm$survival_)
 
 <<psm_plot_survival, fig.show = "hide">>=
 autoplot(psm$survival_, 
-         labels = c(labs_cohort,
-                    list(curve = c("PFS" = 1, "OS" = 2))
-                    ),
-         ci = TRUE, ci_style = "ribbon")
+  labels = c(labs_cohort, list(curve = c("PFS" = 1, "OS" = 2))),
+  ci = TRUE, ci_style = "ribbon")
 @
 
 \begin{figure}[h]
@@ -779,26 +753,23 @@ library("msm")
 qinit <- matrix(0, nrow = 3, ncol = 3)
 qinit[1, 2] <-  0.28; qinit[1, 3] <-  0.013; qinit[2, 3] <-  0.10
 msm_fit <- msm(state_id ~ time, subject = patient_id, 
-               data = onc3p[strategy_name == "SOC"],
-               exacttimes = FALSE,
-               covariates = ~ age + female,
-               qmatrix = qinit, gen.inits = FALSE)
+  data = onc3p[strategy_name == "SOC"], exacttimes = FALSE,
+  covariates = ~ age + female, qmatrix = qinit, gen.inits = FALSE)
 @
 
 <<msm_exact, include = FALSE, message = FALSE>>=
 # msm with exact transition times
 tmat2 <- tmat; tmat2[is.na(tmat2)] <- 0
 msm_efit <- msm(state_id ~ time, subject = patient_id, 
-                data = onc3p[strategy_name == "SOC"],
-                qmatrix = tmat2, exacttimes = TRUE)
+  data = onc3p[strategy_name == "SOC"], 
+  qmatrix = tmat2, exacttimes = TRUE)
 
 # flexsurv with exponential model
 exp_fits <- vector(length = n_trans, mode = "list")
 for (i in 1:length(wei_fits)){
   exp_fits[[i]] <- flexsurvreg(Surv(time, status) ~ 1, data = onc3, 
-                               subset = (transition_id == i & 
-                                         strategy_name == "SOC"),
-                               dist = "exponential")
+    subset = (transition_id == i & strategy_name == "SOC"),
+    dist = "exponential")
 }
 
 # Compare
@@ -817,12 +788,13 @@ params_rr <- list(
   lrr_13_est = c(soc = log(1), new1 = log(.90), new2 = log(.85)),
   lrr_13_se = c(soc = 0, new1 = .02, new2 = .03)
 )  
-
 params_rr_def <- define_rng({
   list(
     rr_12 = lognormal_rng(lrr_12_est, lrr_12_se),
     rr_13 = lognormal_rng(lrr_13_est, lrr_13_se)
-  )}, n = n_samples)
+  )}, 
+  n = n_samples
+)
 params_rr_rng <- eval_rng(params_rr_def, params_rr)
 @
 
@@ -833,8 +805,8 @@ We start by predicting transition intensity matrices for SOC from the exponentia
 <<qmat_soc>>=
 transmod_data <- survmods_data
 qmat_soc <- qmatrix(msm_fit, 
-                    newdata = transmod_data[strategy_name == "SOC"],
-                    uncertainty = "normal", n = n_samples)
+  newdata = transmod_data[strategy_name == "SOC"], 
+  uncertainty = "normal", n = n_samples)
 dim(qmat_soc)
 qmat_soc[,, 1]
 @
@@ -864,16 +836,17 @@ We use this function to predict distributions of relative risks (for the transit
 
 <<rr>>=
 x_rr <- as.matrix(transmod_data[, .(soc, new1, new2)])
-rr <- cbind(xbeta(x_rr, params_rr_rng$rr_12),
-            xbeta(x_rr, params_rr_rng$rr_13))
+rr <- cbind(
+  xbeta(x_rr, params_rr_rng$rr_12),
+  xbeta(x_rr, params_rr_rng$rr_13)
+)
 head(rr) 
 @
 
 Relative risks are applied to the elements (stable $\rightarrow$ progression (1, 2) and stable $\rightarrow$ death (1, 3)) of each transition probability matrix for SOC with \code{apply_rr()}. The result is an array of matrices for each PSA sample, treatment strategy,  and representative patient, as desired. The \code{tparams_transprobs} object can then be created by simply combining the transition probability matrices and the identification dataset. 
 
 <<apply_rr>>=
-pmat <- apply_rr(pmat_soc, rr = rr,
-                 index = list(c(1, 2), c(1, 3)))
+pmat <- apply_rr(pmat_soc, rr = rr, index = list(c(1, 2), c(1, 3)))
 tprobs <- tparams_transprobs(pmat, tpmat_id)
 @
 
@@ -883,15 +856,14 @@ Once the model has been parameterized, the simulation is straightforward. The tr
 
 <<dtstm_transmod>>=
 transmod <- CohortDtstmTrans$new(params = tprobs, 
-                                 cycle_length = cycle_len)
+  cycle_length = cycle_len)
 @
 
 and the complete economic model is again instantiated from the transition, utility, and cost submodels. 
 
 <<dtstm_econmod>>=
-cdtstm <- CohortDtstm$new(trans_model = transmod,
-                          utility_model = psm$utility_model,
-                          cost_models = psm$cost_models)
+cdtstm <- CohortDtstm$new(trans_model = transmod, 
+  utility_model = psm$utility_model, cost_models = psm$cost_models)
 @
 
 We simulate state probabilities for 120 cycles (i.e., 30 years).
@@ -955,9 +927,8 @@ A CEA is performed from this output with the \code{cea()} and \code{cea_pw()} fu
 <<cea>>=
 wtp <- seq(0, 250000, 500) 
 cea_ictstm <- cea(ce_sim_ictstm, dr_costs = .03, dr_qalys = .03, k = wtp)
-cea_pw_ictstm <- cea_pw(ce_sim_ictstm, comparator = 1,
-                        dr_qalys = .03, dr_costs = .03,
-                        k = wtp)
+cea_pw_ictstm <- cea_pw(ce_sim_ictstm, comparator = 1, dr_qalys = .03, 
+  dr_costs = .03, k = wtp)
 @
 
 \subsubsection{Incremental cost-effectiveness ratio}
