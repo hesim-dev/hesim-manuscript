@@ -39,8 +39,8 @@ Asaria M, Griffin S, Cookson R, Whyte S, Tappenden P (2015).
 
 \bibitem[{Bache and Wickham(2020)}]{bache2020}
 Bache SM, Wickham H (2020).
-\newblock \emph{magrittr: A Forward-Pipe Operator for R}.
-\newblock R package version 2.0.1,
+\newblock \emph{magrittr: A Forward-Pipe Operator for \proglang{R}}.
+\newblock \proglang{R} package version 2.0.1,
   \urlprefix\url{https://CRAN.R-project.org/package=magrittr}.
 
 \bibitem[{Baio(2012)}]{baio2012bayesian}
@@ -94,7 +94,7 @@ Briggs A, Sculpher M, Claxton K (2006).
 \bibitem[{Chang(2020)}]{chang2020}
 Chang W (2020).
 \newblock \emph{R6: Encapsulated Classes with Reference Semantics}.
-\newblock R package version 2.5.0,
+\newblock \proglang{R} package version 2.5.0,
   \urlprefix\url{https://CRAN.R-project.org/package=R6}.
 
 \bibitem[{Claxton \emph{et~al.}(2005)Claxton, Sculpher, McCabe, Briggs,
@@ -132,8 +132,8 @@ Dakin H, Devlin N, Feng Y, Rice N, O'Neill P, Parkin D (2015).
 \bibitem[{de~Wreede \emph{et~al.}(2011)de~Wreede, Fiocco, Putter
   \emph{et~al.}}]{de2011mstate}
 de~Wreede LC, Fiocco M, Putter H, \emph{et~al.} (2011).
-\newblock \enquote{\pkg{mstate}: An R Package for the Analysis of Competing
-  Risks and Multi-State Models.}
+\newblock \enquote{\pkg{mstate}: An \proglang{R} Package for the Analysis of
+  Competing Risks and Multi-State Models.}
 \newblock \emph{Journal of statistical software}, \textbf{38}(7), 1--30.
 \newblock \doi{10.18637/jss.v038.i07}.
 
@@ -147,7 +147,7 @@ Dias S, Ades AE, Welton NJ, Jansen JP, Sutton AJ (2018).
 \bibitem[{Dowle and Srinivasan(2021)}]{dowle2021datatable}
 Dowle M, Srinivasan A (2021).
 \newblock \emph{data.table: Extension of `data.frame`}.
-\newblock R package version 1.14.0,
+\newblock \proglang{R} package version 1.14.0,
   \urlprefix\url{https://CRAN.R-project.org/package=data.table}.
 
 \bibitem[{Eddelbuettel(2013)}]{eddelbuettel2013rcpp}
@@ -239,8 +239,8 @@ Incerti D, Thom H, Baio G, Jansen JP (2019).
 
 \bibitem[{Jackson(2011)}]{jackson2011}
 Jackson CH (2011).
-\newblock \enquote{Multi-State Models for Panel Data: The {msm} Package for
-  {R}.}
+\newblock \enquote{Multi-State Models for Panel Data: The \pkg{msm} Package for
+  \proglang{R}.}
 \newblock \emph{Journal of Statistical Software}, \textbf{38}(8), 1--29.
 \newblock \urlprefix\url{http://www.jstatsoft.org/v38/i08/}.
 
