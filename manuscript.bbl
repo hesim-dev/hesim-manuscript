@@ -1,4 +1,4 @@
-\begin{thebibliography}{46}
+\begin{thebibliography}{50}
 \newcommand{\enquote}[1]{``#1''}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
@@ -36,6 +36,12 @@ Asaria M, Griffin S, Cookson R, Whyte S, Tappenden P (2015).
   Programme.}
 \newblock \emph{Health Economics}, \textbf{24}(6), 742--754.
 \newblock \doi{10.1002/hec.3058}.
+
+\bibitem[{Bache and Wickham(2020)}]{bache2020}
+Bache SM, Wickham H (2020).
+\newblock \emph{magrittr: A Forward-Pipe Operator for R}.
+\newblock R package version 2.0.1,
+  \urlprefix\url{https://CRAN.R-project.org/package=magrittr}.
 
 \bibitem[{Baio(2012)}]{baio2012bayesian}
 Baio G (2012).
@@ -84,6 +90,12 @@ Briggs A, Sculpher M (1998).
 Briggs A, Sculpher M, Claxton K (2006).
 \newblock \emph{Decision Modelling for Health Economic Evaluation}.
 \newblock Oup Oxford.
+
+\bibitem[{Chang(2020)}]{chang2020}
+Chang W (2020).
+\newblock \emph{R6: Encapsulated Classes with Reference Semantics}.
+\newblock R package version 2.5.0,
+  \urlprefix\url{https://CRAN.R-project.org/package=R6}.
 
 \bibitem[{Claxton \emph{et~al.}(2005)Claxton, Sculpher, McCabe, Briggs,
   Akehurst, Buxton, Brazier, and O'Hagan}]{claxton2005probabilistic}
@@ -225,6 +237,13 @@ Incerti D, Thom H, Baio G, Jansen JP (2019).
 \newblock \emph{Value in Health}, \textbf{22}(5), 575--579.
 \newblock \doi{10.1016/j.jval.2019.01.003}.
 
+\bibitem[{Jackson(2011)}]{jackson2011}
+Jackson CH (2011).
+\newblock \enquote{Multi-State Models for Panel Data: The {msm} Package for
+  {R}.}
+\newblock \emph{Journal of Statistical Software}, \textbf{38}(8), 1--29.
+\newblock \urlprefix\url{http://www.jstatsoft.org/v38/i08/}.
+
 \bibitem[{Jackson(2016)}]{jackson2016flexsurv}
 Jackson CH (2016).
 \newblock \enquote{\pkg{flexsurv}: A Platform for Parametric Survival Modeling
@@ -329,6 +348,13 @@ Trosman JR, Van~Bebber SL, Phillips KA (2011).
   Personalized Medicine.}
 \newblock \emph{Journal of Oncology Practice}, \textbf{7}(3S), 18s--24s.
 \newblock \doi{10.1200/JOP.2011.000300}.
+
+\bibitem[{Venables and Ripley(2002)}]{venables2002}
+Venables WN, Ripley BD (2002).
+\newblock \emph{Modern Applied Statistics with S}.
+\newblock Fourth edition. Springer, New York.
+\newblock ISBN 0-387-95457-0,
+  \urlprefix\url{https://www.stats.ox.ac.uk/pub/MASS4/}.
 
 \bibitem[{Wickham(2016)}]{wickham2016ggplot2}
 Wickham H (2016).
