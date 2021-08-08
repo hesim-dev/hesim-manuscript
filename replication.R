@@ -31,10 +31,10 @@ opts_chunk$set(
   fig.height = 4, fig.width = 6
 )
 options(prompt = "> ", continue = "+  ", width = 120, useFancyQuotes = TRUE)
-ggplot2::theme_set(ggplot2::theme_bw())
+theme_set(theme_bw())
 set.seed(102)
 
-#' # Illustrative example
+#' # Simulation of model outcomes
 #' ## Individual continuous time state transition model
 #' ### Setup model
 #' #### Target population, treatment strategies, and model structure
@@ -45,7 +45,7 @@ tmat <- rbind(
   c(NA, NA, NA)
 )
 colnames(tmat) <- rownames(tmat) <- c("Stable", "Progression", "Dead")
-print(tmat)
+tmat
 
 # hesim data
 n_patients <- 1000
@@ -73,11 +73,11 @@ hesim_dat <- hesim_data(
   patients = patients,
   states = states
 )
-print(hesim_dat)
+hesim_dat
 
 #' #### Labels for ID variables
 labs_indiv <- get_labels(hesim_dat)
-print(labs_indiv)
+labs_indiv
 
 #' ### Parameterization
 #' #### Transition model
@@ -104,7 +104,7 @@ utility_tbl <- stateval_tbl(
              se = c(0.02, .05)
   ),
   dist = "beta")
-print(utility_tbl)
+utility_tbl
 
 #' #### Cost models
 # Medical costs
@@ -114,7 +114,7 @@ medcost_tbl <- stateval_tbl(
              se = c(2000, 9500)
   ),
   dist = "gamma")
-print(medcost_tbl)
+medcost_tbl
 
 # Drug costs
 n_times <- 2
@@ -133,7 +133,7 @@ drugcost_dt <-  data.table(
 drugcost_tbl <- stateval_tbl(
   drugcost_dt,
   dist = "fixed")
-print(drugcost_tbl)
+drugcost_tbl
 
 
 #' ### Simulation
@@ -268,7 +268,7 @@ head(coef_pfs_wei)
 drugcost_tbl <- stateval_tbl(
   drugcost_dt[time_start ==  0][, time_start := NULL],
   dist = "fixed")
-print(drugcost_tbl)
+drugcost_tbl
 
 #' ### Simulation
 #' #### Constructing the economic model
